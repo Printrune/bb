@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Game model portrait capture</title>
+<style>
+  body { margin: 0; padding: 24px; background: #101213; color: #e6e8df; font: 14px Arial, sans-serif; }
+  nav { display: flex; gap: 10px; margin-bottom: 14px; }
+  button { padding: 12px 20px; cursor: pointer; }
+  canvas { display: block; width: 640px; height: 480px; touch-action: none; }
+  #status { margin: 14px 0; }
+</style></head>
+<body><nav aria-label="Choose model"><button id="witchdoctor">Witch Doctor</button><button id="tombstone">Tombstone</button></nav>
+<canvas id="portrait" aria-label="Actual gameplay robot renderer"></canvas><p id="status" role="status">Loading the game renderer…</p>
+<script type="module" src="./bot-portraits.ts"></script></body></html>

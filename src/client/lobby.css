@@ -1,4 +1,4 @@
-/* The garage is a photo-led selection screen; match and immersive HUDs stay independent. */
+/* The garage uses the same live robot renderer as gameplay; match and immersive HUDs stay independent. */
 .lobby-header { min-height: 78px; padding: 0 max(32px, calc((100vw - 1320px) / 2)); border-bottom: 1px solid #ffffff17; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
 .lobby-header .wordmark > span { font-size: 34px; }
 .lobby-header-right { display: flex; align-items: center; gap: 22px; }
@@ -15,27 +15,16 @@
 .lobby-match-facts strong { color: #e2e6dc; font: 600 32px/.9 'Barlow Condensed', Impact, sans-serif; letter-spacing: .3px; }
 .lobby-match-facts svg { color: #e2e6dc; }
 .lobby-main .arena-layout { grid-template-columns: minmax(0, 1fr) 356px; gap: 28px; align-items: start; }
-.lobby-main .lobby-stage { min-height: 470px; height: clamp(430px, 37vw, 540px); border-color: #4b514c; background: #fff; }
-.lobby-stage--photo::after { display: none; }
-.lobby-photo { position: absolute; inset: 0; z-index: 1; background: #fff; padding: 48px 16px 88px; }
+.lobby-main .lobby-stage { min-height: 470px; height: clamp(430px, 37vw, 540px); border-color: #4b514c; background: #15191a; }
 .bot-portrait { display: block; object-fit: contain; width: 100%; height: 100%; }
-.lobby-photo .bot-portrait { animation: portrait-appear .24s ease-out; }
-@keyframes portrait-appear { from { opacity: .45; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .lobby-stage-top { position: absolute; top: 17px; left: 23px; right: 19px; z-index: 3; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.lobby-photo-label { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; color: #bec7bd; }
-.lobby-stage--photo .lobby-photo-label { color: #626d63; }
+.lobby-preview-label { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; color: #bec7bd; }
 .preview-switch { display: flex; padding: 3px; border: 1px solid #ffffff3a; background: #131a17d9; gap: 2px; }
 .preview-switch button { min-height: 36px; min-width: 58px; padding: 6px 10px; border: 0; background: none; color: #bbc4ba; font-size: 11px; font-weight: 600; }
 .preview-switch button[aria-pressed="true"] { background: #eff0e9; color: #202820; }
 .preview-switch button:hover:not([aria-pressed="true"]) { color: #fff; background: #ffffff15; }
-.lobby-stage--photo .preview-switch { background: #f3f4ef; border-color: #dfe3da; }
-.lobby-stage--photo .preview-switch button { color: #596352; }
-.lobby-stage--photo .preview-switch button[aria-pressed="true"] { background: #20271f; color: #fff; }
-.lobby-stage--photo .preview-switch button:hover:not([aria-pressed="true"]) { background: #e3e7dc; color: #20271f; }
 .lobby-stage-caption { position: absolute; bottom: 0; left: 0; right: 0; min-height: 88px; padding: 16px 25px; z-index: 3; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ffffff24; color: #fff; background: #111916a8; }
-.lobby-stage--photo .lobby-stage-caption { background: #eff1e9; border-color: #dfe3d8; color: #20261e; }
 .lobby-bot-edition { display: block; color: #bbc6b4; font-size: 8px; font-weight: 700; letter-spacing: 1.7px; }
-.lobby-stage--photo .lobby-bot-edition { color: #687560; }
 .lobby-stage-caption h2 { margin: 4px 0 0; text-transform: uppercase; font: 700 38px/.95 'Barlow Condensed', Impact, sans-serif; letter-spacing: .2px; }
 .lobby-bot-number { font: 600 56px/.9 'Barlow Condensed', Impact, sans-serif; color: #8a9a7d; opacity: .5; }
 .lobby-setup { display: flex; flex-direction: column; min-width: 0; }
@@ -46,7 +35,7 @@
 .lobby-bot { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; padding: 8px; padding-right: 30px; min-height: 94px; text-align: left; border: 1px solid #42493f; background: #191e19; transition: border-color .16s, background .16s; }
 .lobby-bot:hover { border-color: #9ba78b; background: #22281f; }
 .lobby-bot--selected { border: 1px solid var(--amber); background: #29281e; box-shadow: inset 3px 0 var(--amber); }
-.lobby-bot-photo { display: block; flex: 0 0 104px; height: 76px; background: white; padding: 3px; }
+.lobby-bot-photo { display: block; flex: 0 0 104px; height: 76px; background: #202823; padding: 0; }
 .lobby-bot-copy { display: flex; flex-direction: column; gap: 7px; }
 .lobby-bot-copy strong { font: 600 28px/.95 'Barlow Condensed', Impact, sans-serif; }
 .lobby-bot-copy > span { font-size: 11px; color: #adb4a6; }
@@ -82,7 +71,7 @@
 .lobby-footer { max-width: 1320px; margin: 0 auto; padding: 18px 0 24px; border-top: 1px solid #343b30; display: flex; justify-content: space-between; gap: 18px; color: #94a087; font-size: 8px; font-weight: 600; letter-spacing: 1.4px; }
 .lobby-footer > span:last-child { color: #7e8a73; }
 .lobby-footer > span:last-child > span { margin-left: 12px; }
-.join-bot-photo { background: white; }
+.join-bot-photo { background: #202823; }
 @media (max-width: 1384px) { .lobby-footer { margin: 0 32px; } }
 @media (min-width: 1100px) {
   .lobby-intro h1 br { display: none; }
@@ -95,7 +84,7 @@
   .lobby-bot-photo { flex-basis: 90px; }
   .lobby-bot-copy strong { font-size: 25px; }
   .lobby-stage-top { left: 15px; right: 15px; }
-  .lobby-photo-label { display: none; }
+  .lobby-preview-label { display: none; }
   .preview-switch { margin-left: auto; }
 }
 @media (max-width: 760px) {
@@ -113,7 +102,7 @@
   .lobby-match-facts strong { font-size: 27px; }
   .lobby-main .arena-layout { grid-template-columns: 1fr; gap: 24px; }
   .lobby-main .lobby-stage { height: 380px; min-height: 0; }
-  .lobby-photo-label { display: block; }
+  .lobby-preview-label { display: block; }
   .lobby-roster { grid-template-columns: 1fr 1fr; }
   .lobby-bot { padding: 8px; gap: 10px; }
   .lobby-bot-photo { flex-basis: 84px; height: 66px; }
@@ -140,10 +129,9 @@
   .lobby-main .arena-layout { gap: 20px; }
   .lobby-main .lobby-stage { height: 290px; }
   .lobby-stage-top { top: 10px; left: 14px; right: 10px; }
-  .lobby-photo-label { font-size: 7px; letter-spacing: .8px; }
+  .lobby-preview-label { font-size: 7px; letter-spacing: .8px; }
   .preview-switch { padding: 2px; }
   .preview-switch button { min-height: 36px; min-width: 47px; padding: 6px 7px; font-size: 10px; }
-  .lobby-photo { padding: 49px 6px 64px; }
   .lobby-stage-caption { min-height: 64px; padding: 11px 15px; }
   .lobby-stage-caption h2 { font-size: 28px; }
   .lobby-bot-edition { font-size: 7px; letter-spacing: 1px; }
@@ -174,6 +162,5 @@
   .lobby-intro h1 { font-size: 39px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lobby-photo .bot-portrait { animation: none; }
   .lobby-play-button:hover:not(:disabled), .lobby-play-button:active:not(:disabled) { transform: none; }
 }

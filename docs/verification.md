@@ -1,6 +1,12 @@
 # Release verification
 
-## Current v0.7.6 menu checks
+## Current v0.7.7 game-model portraits
+
+The menu now opens with the live gameplay renderer. Both selection-card pictures are browser captures of that same renderer, with the complete selected robot visible. The original studio photographs are no longer public menu assets. Bot selection and the Bot/Arena view switch preserve the existing canvas and game state; selecting paint still updates the live model.
+
+TypeScript and both production client builds pass. The production Pages bundle was checked in a browser: both game portraits load, switching to Tombstone updates the live preview and capabilities, and Fight now starts practice with Tombstone. The menu changes do not modify robot geometry, materials, lighting, physics or VR rendering. The capture fixture and exact crop dimensions are documented in [Menu robot portraits](menu-photo-sources.md).
+
+## v0.7.6 menu checks
 
 All 77 automated tests and TypeScript checks pass. Both the server-edition client and GitHub Pages production bundles build successfully. The two public studio photographs match the original reference files byte for byte, and both load at 1140 × 760 through the `/bb/` asset path.
 

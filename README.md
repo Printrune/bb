@@ -14,7 +14,7 @@ In a compatible headset browser, start a match and select **VR**. Practice waits
 
 The user confirmed working immersive VR on a physical Quest 3 with v0.7.4 and confirmed that the v0.7.5 behind-the-bot view looks right. Other headsets use runtime WebXR detection and require usable gamepad controls. Compatibility and sustained frame rate remain unverified on those devices. See [VR support and setup](docs/vr-support.md).
 
-The v0.7.6 menu uses authentic studio photos of Witch Doctor and Tombstone. Select a bot, then **Fight now** for solo practice. **Customize** contains driver name and paint; choosing a paint opens the **3D bot** preview. **Photo** restores the original studio portrait and **Arena** shows the BattleBox. [Photo sources](docs/menu-photo-sources.md).
+The v0.7.7 menu shows the actual game models in the live preview and selection pictures. Select a bot, then **Fight now** for solo practice. **Customize** contains driver name and paint. **Bot** shows the selected game model and **Arena** shows the BattleBox. [Portrait capture workflow](docs/menu-photo-sources.md).
 
 ## Run locally
 
@@ -35,7 +35,7 @@ On a phone, rotate to landscape during a match. Use the left stick to drive and 
 
 On a keyboard, use WASD or the arrow keys to drive, Space to toggle the weapon, R to recover, and H to operate your two corner pulverizers. The same controls have touch buttons. Sound is off initially. Use the speaker button to enable it.
 
-In the garage, select **3D bot**, then drag the view to inspect the game model from different angles. Use the mouse wheel to zoom. Witch Doctor has an active ribcage self-righter. Tombstone drives inverted and has no active self-righting control. Weapons spin up gradually, coast after power is cut, and lose speed after impacts.
+In the garage, select **Bot**, then drag the view to inspect the game model from different angles. Use the mouse wheel to zoom. Witch Doctor has an active ribcage self-righter. Tombstone drives inverted and has no active self-righting control. Weapons spin up gradually, coast after power is cut, and lose speed after impacts.
 
 Matches last three minutes. A knockout ends a match immediately. Otherwise, the bot with more health wins. Equal health produces a draw.
 

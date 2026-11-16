@@ -1,14 +1,18 @@
-# Menu robot photography
+# Menu robot portraits
 
-The menu uses the original official studio portraits of the same robot builds represented in the game. Both photographs show a complete robot on a white studio background. The project owner authorized the branding and images.
+Version 0.7.7 uses captures of the actual game renderer for selection-card pictures. The main preview is the live game scene. There are no studio photographs in the menu. The game models, materials, lighting, shadows, arena and robot proportions are unchanged.
 
-| Public asset | Robot build | Dimensions | Bytes | Original source |
-| --- | --- | --- | --- | --- |
-| `public/assets/bots/witch-doctor-wcvii.jpg` | Witch Doctor, World Championship VII | 1140 × 760 | 221,693 | [BattleBots WCVII profile](https://battlebots.com/robot/witch-doctor-wcvii/), [original JPEG](https://battlebots.com/wp-content/uploads/2022/11/BB2022-witch-doctor-bot.jpg) |
-| `public/assets/bots/tombstone-2021.jpg` | Tombstone, 2021 | 1140 × 760 | 208,170 | [BattleBots 2021 profile](https://battlebots.com/robot/tombstone-2021/), [original JPEG](https://battlebots.com/wp-content/uploads/2021/10/Tombstone-bot-2021.jpg) |
+| Public asset | Capture size | View |
+| --- | --- | --- |
+| `public/assets/bots/witch-doctor-game.jpg` | 420 × 280 | Witch Doctor, signature paint, front three-quarter |
+| `public/assets/bots/tombstone-game.jpg` | 420 × 320 | Tombstone, signature paint, front three-quarter |
 
-The public files are unaltered copies of the inspected reference photographs. They retain the original pixels, colors, sponsor marks, and complete robot silhouettes. Their combined download size is 429,863 bytes. `assets/reference/manifest.json` records their original URLs, dimensions, and SHA-256 hashes.
+The images are browser screenshots of the real `createArena` renderer, cropped to keep the selected bot's full weapon and wheels visible. No generated replacement, studio-photo overlay, recoloring or model substitution is used. Cropping removes the preview controls and the distant rival. The live preview follows the selected paint; the small roster portraits use signature paint.
 
-Both images have a natural 3:2 aspect ratio. A light studio panel with the whole image visible preserves each weapon, wheel, and frame edge. Tight crops, perspective transforms, and strong color filters can obscure these details. No higher-resolution version of these exact official portraits was verified, so the menu uses the known originals rather than invented URL variants or generated replacements.
+## Recapture after model changes
 
-The larger Witch Doctor action reference remains available in `assets/reference/witch-doctor-wcvii/action-versus-jackpot.jpg`. It includes a partial crop of the robot and an authored purple gradient, so it is not the matching menu portrait.
+Run `node scripts/preview-bot-portraits.mjs`, then open `http://127.0.0.1:3003/scripts/bot-portraits.html`. Select a bot and wait for its model and camera to settle. The fixture imports the same `createArena` entry point as the game and calls its public `setPreview` method. Its canvas is 640 × 480 CSS pixels.
+
+Capture the visible canvas with browser screenshot tools. The current Witch Doctor crop is x=110, y=128, width=420, height=280 relative to the canvas. Tombstone uses x=120, y=109, width=420, height=320. Confirm the full model remains visible after any geometry or camera changes, and adjust framing when needed. Save JPEGs to the paths above. Stop the preview server after capture. The fixture is a development script, not part of the published client.
+
+The official studio originals remain in `assets/reference` for model research. Their sources and model-build baselines are documented in [Robot references](bot-references.md). The previous v0.7.6 photo-menu assets were removed from public output.

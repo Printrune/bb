@@ -129,7 +129,7 @@ export function App() {
   const [error, setError] = useState('');
   const [rendererReady, setRendererReady] = useState(false);
   const [rendererError, setRendererError] = useState('');
-  const [previewMode, setPreviewMode] = useState<'photo' | 'robot' | 'arena'>('photo');
+  const [previewMode, setPreviewMode] = useState<'robot' | 'arena'>('robot');
   const overview = previewMode === 'arena';
   const [vrStatus, setVRStatus] = useState<VRStatus>({ kind: 'checking' });
   const [vrAttempted, setVRAttempted] = useState(false);
@@ -502,16 +502,14 @@ export function App() {
       </section>
 
       <div className="arena-layout">
-        <section className={`arena-stage ${inRoom ? 'arena-stage--match' : `lobby-stage ${previewMode === 'photo' ? 'lobby-stage--photo' : ''}`}`} aria-label={inRoom ? '3D BattleBox arena' : `${selectedBot.name} preview`}>
-          <canvas ref={canvas} className="arena-canvas" aria-label="Live 3D robot arena" aria-hidden={!inRoom && previewMode === 'photo'} />
-          {!rendererReady && !rendererError && (inRoom || previewMode !== 'photo') ? <div className="arena-loading"><span className="loader" /><span>POWERING UP THE BATTLEBOX</span></div> : null}
+        <section className={`arena-stage ${inRoom ? 'arena-stage--match' : 'lobby-stage'}`} aria-label={inRoom ? '3D BattleBox arena' : `${selectedBot.name} preview`}>
+          <canvas ref={canvas} className="arena-canvas" aria-label="Live 3D robot arena" />
+          {!rendererReady && !rendererError ? <div className="arena-loading"><span className="loader" /><span>POWERING UP THE BATTLEBOX</span></div> : null}
           {rendererError ? <div className="arena-loading arena-failed"><Icon name="help" size={30} /><strong>Let’s get your arena running.</strong><p>{rendererError}</p><button className="button button-secondary" onClick={() => window.location.reload()}>RELOAD ARENA</button></div> : null}
 
           {!inRoom ? <>
-            {previewMode === 'photo' ? <div className="lobby-photo"><BotPortrait key={botId} botId={botId} featured /></div> : null}
-            <div className="lobby-stage-top"><span className="lobby-photo-label">{previewMode === 'photo' ? 'THE REAL MACHINE' : overview ? 'THE BATTLEBOX' : 'IN-GAME MODEL'}</span><div className="preview-switch" role="group" aria-label="Preview view">
-              <button aria-pressed={previewMode === 'photo'} onClick={() => setPreviewMode('photo')}>Photo</button>
-              <button aria-pressed={previewMode === 'robot'} onClick={() => setPreviewMode('robot')}>3D bot</button>
+            <div className="lobby-stage-top"><span className="lobby-preview-label">{overview ? 'THE BATTLEBOX' : 'LIVE GAME PREVIEW'}</span><div className="preview-switch" role="group" aria-label="Preview view">
+              <button aria-pressed={previewMode === 'robot'} onClick={() => setPreviewMode('robot')}>Bot</button>
               <button aria-pressed={overview} onClick={() => setPreviewMode('arena')}>Arena</button>
             </div></div>
             <div className="lobby-stage-caption"><div><span className="lobby-bot-edition">{overview ? '48 × 48 FT · ACTIVE HAZARDS' : botVersion}</span><h2>{overview ? 'THE BATTLEBOX' : selectedBot.name}</h2></div><span className="lobby-bot-number" aria-hidden="true">{overview ? '48' : selectedBot.number}</span></div>
@@ -543,7 +541,7 @@ export function App() {
         <aside className="lobby-setup" hidden={inRoom} aria-label="Choose your bot and play">
           <div className="lobby-roster-heading"><h2>CHOOSE YOUR MACHINE</h2><span>02 BOTS</span></div>
           <div className="lobby-roster" role="group" aria-label="Robot selection">
-            {Object.values(BOTS).map((bot) => <button key={bot.id} className={`lobby-bot ${botId === bot.id ? 'lobby-bot--selected' : ''}`} onClick={() => { setBotId(bot.id); setPaint('signature'); setPreviewMode('photo'); }} aria-label={`Select ${bot.name}`} aria-pressed={botId === bot.id}>
+            {Object.values(BOTS).map((bot) => <button key={bot.id} className={`lobby-bot ${botId === bot.id ? 'lobby-bot--selected' : ''}`} onClick={() => { setBotId(bot.id); setPaint('signature'); setPreviewMode('robot'); }} aria-label={`Select ${bot.name}`} aria-pressed={botId === bot.id}>
               <span className="lobby-bot-photo"><BotPortrait botId={bot.id} decorative /></span><span className="lobby-bot-copy"><strong>{bot.name}</strong><span>{bot.weapon.kind === 'vertical-disc' ? 'Vertical spinner' : 'Horizontal spinner'}</span></span><span className="lobby-bot-check" aria-hidden="true">{botId === bot.id ? <Icon name="check" size={15} /> : null}</span>
             </button>)}
           </div>
@@ -565,7 +563,7 @@ export function App() {
 
     </main>
 
-    <footer className="lobby-footer" hidden={inRoom}><span>STEEL. SPARKS. TOTAL DESTRUCTION.</span><span>BATTLEBOTS ARENA <span>V0.7.6</span></span></footer>
+    <footer className="lobby-footer" hidden={inRoom}><span>STEEL. SPARKS. TOTAL DESTRUCTION.</span><span>BATTLEBOTS ARENA <span>V0.7.7</span></span></footer>
 
     {error ? <div className="toast" role="alert"><Icon name="help" size={18} /><span>{error}</span><button className="icon-button" onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16} /></button></div> : null}
 
