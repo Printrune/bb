@@ -2,9 +2,11 @@
 
 A mobile-first 3D arcade game with private online 1v1 matches, an AI practice opponent, and a chase camera. Choose Witch Doctor or Tombstone, pick a paint colour, and share a match link with a friend.
 
-## Free GitHub practice and VR
+## GitHub hosting, multiplayer and VR
 
-The GitHub Pages edition runs solo practice in a browser worker. It uses the same Rapier simulation, opponent, damage, hazards and rematches as the server build. It needs no game server or password. GitHub Pages cannot host the live multiplayer server; online matches remain available in the server edition.
+The GitHub Pages edition runs solo practice in a browser worker. It uses the same Rapier simulation, opponent, damage, hazards and rematches as the server build. Practice needs no game server or password. Online play connects the same Pages site to a separate game server; GitHub Pages cannot run that server itself. The website and source remain on GitHub.
+
+When the `GAME_SERVER_URL` repository variable is configured, the menu offers **Create match**, **Join friend**, and **Practice**. Players open the same `/bb/` site on their devices, enter the shared arena password, and share a private invitation link. Both players select **I'm ready** to start. Without a configured server, the site continues to offer solo **Fight now**. [Free multiplayer setup](docs/multiplayer-hosting.md).
 
 Play the free edition at [printrune.github.io/bb](https://printrune.github.io/bb/).
 
@@ -14,7 +16,7 @@ In a compatible headset browser, start a match and select **VR**. Practice waits
 
 The user confirmed working immersive VR on a physical Quest 3 with v0.7.4 and confirmed that the v0.7.5 behind-the-bot view looks right. Other headsets use runtime WebXR detection and require usable gamepad controls. Compatibility and sustained frame rate remain unverified on those devices. See [VR support and setup](docs/vr-support.md).
 
-The v0.7.7 menu shows the actual game models in the live preview and selection pictures. Select a bot, then **Fight now** for solo practice. **Customize** contains driver name and paint. **Bot** shows the selected game model and **Arena** shows the BattleBox. [Portrait capture workflow](docs/menu-photo-sources.md).
+The menu shows the actual game models in the live preview and selection pictures. **Customize** contains driver name and paint. **Bot** shows the selected game model and **Arena** shows the BattleBox. [Portrait capture workflow](docs/menu-photo-sources.md).
 
 ## Run locally
 
@@ -71,6 +73,7 @@ With the server running, exercise real clients:
 
 ```sh
 pnpm verify:multiplayer
+pnpm verify:pages-multiplayer
 pnpm verify:load
 pnpm verify:arena-network
 pnpm verify:damage-network
@@ -90,7 +93,7 @@ The damage network check drives into an exposed wheel through normal combat. It 
 4. Deploy the service and open its HTTPS URL.
 5. Run the verification scripts against that URL before sharing invitations.
 
-Use the free service for the first small test. It sleeps after inactivity and has compute and bandwidth limits. If warm matches fail the load check because of server resources, upgrade the same service. The client graphics do not change with the hosting tier.
+Use the free service for the first small test. It sleeps after inactivity and has compute and bandwidth limits. The blueprint starts with one concurrent two-player room. Measure it before increasing capacity; do not enable a paid tier automatically.
 
 The public repository exposes the source code. The shared game password gates multiplayer access. Passwords and signing keys belong in hosting settings, never client code or GitHub.
 
@@ -100,7 +103,7 @@ The models reconstruct WCVII Witch Doctor and classic 2021 Tombstone from nine p
 
 Wheel traction, spinner contact volumes, recoil, coasting, gyroscopic effects, inverted driving, and motor-driven recovery run on the server. Dimensions and force coefficients are game-space approximations rather than team CAD or measured telemetry. Paint changes appearance only.
 
-Match state is temporary and resets when the server restarts. Guests can reconnect to their seat for 15 seconds after a dropped connection. Local configuration supports four rooms. The free Render blueprint starts at two rooms to leave CPU headroom for the richer physics. For that deployment, set `VERIFY_LOAD_ROOMS=2` when running the load check. Benchmark the actual hosting tier before increasing capacity.
+Match state is temporary and resets when the server restarts. Guests can reconnect to their seat for 15 seconds after a dropped connection. Local configuration supports four rooms. The free Render blueprint starts at one room to leave CPU headroom for physics. For that deployment, set `VERIFY_LOAD_ROOMS=1` when running the load check. Benchmark the actual hosting tier before increasing capacity. A Pages tab that is refreshed must rejoin through its invitation; a brief connection drop reconnects automatically while the page stays open.
 
 The game has no age gate or date-of-birth collection. Accounts, payments, public matchmaking, spectators, team battles, and real-show activities are future work.
 

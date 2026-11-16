@@ -5,7 +5,7 @@ import {
   RECONNECT_SECONDS, SNAPSHOT_RATE, TICK_RATE,
   joinOptionsSchema, playerInputSchema,
 } from '../shared/protocol';
-import { sessionValid, SESSION_COOKIE } from './auth';
+import { originAllowed, requestToken, sessionValid } from './auth';
 import type { AuthConfig } from './auth';
 import { createSimulation } from './simulation';
 import type { Simulation } from './simulation';
@@ -31,8 +31,11 @@ export function createArenaRoom(dependencies: RoomDependencies) {
     private messageWindows = new Map<string, { since: number; count: number }>();
 
     onAuth(_client: Client, _options: unknown, context: AuthContext): boolean {
-      const cookie = context.headers.get('cookie') ?? '';
-      const token = cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${SESSION_COOKIE}=`))?.slice(SESSION_COOKIE.length + 1) ?? '';
+      if (!originAllowed(context.headers.get('origin'), context.headers.get('host'), dependencies.auth)) {
+        throw new ServerError(403, 'Origin not allowed.');
+      }
+      const token = requestToken({ cookie: context.headers.get('cookie') ?? undefined,
+        authorization: context.headers.get('authorization') ?? undefined }, context.token);
       if (!sessionValid(token, dependencies.auth)) throw new ServerError(401, 'Enter the arena password first.');
       return true;
     }

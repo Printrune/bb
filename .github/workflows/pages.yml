@@ -1,4 +1,4 @@
-name: Publish free GitHub practice
+name: Publish GitHub game
 on:
   push:
     branches: [codex/arena-demo]
@@ -22,6 +22,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:pages
+        env:
+          VITE_GAME_SERVER_URL: ${{ vars.GAME_SERVER_URL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -33,6 +35,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Publish HTTPS practice game
+      - name: Publish HTTPS game
         id: deployment
         uses: actions/deploy-pages@v4

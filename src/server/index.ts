@@ -2,12 +2,12 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import express from 'express';
-import { Server } from '@colyseus/core';
+import { Server, matchMaker } from '@colyseus/core';
 import { WebSocketTransport } from '@colyseus/ws-transport';
 import { z } from 'zod';
 import {
-  isAuthenticated, issueSession, originAllowed, passwordsEqual, readAuthConfig,
-  SESSION_COOKIE, sessionCookie, sessionValid,
+  corsHeaders, isAuthenticated, issueSession, originAllowed, passwordsEqual, preflightAllowed,
+  readAuthConfig, requestToken, sessionCookie, sessionValid,
 } from './auth';
 import { createArenaRoom, roomMetrics } from './room';
 
@@ -25,10 +25,10 @@ let vite: Awaited<ReturnType<typeof import('vite')['createServer']>> | null = nu
 const transport = new WebSocketTransport({
   server: httpServer,
   maxPayload: 2_048,
-  beforeUpgrade: (request) => {
-    const origin = request.headers.get('origin');
-    if (origin && new URL(origin).host !== request.headers.get('host')) return new Response(null, { status: 403 });
-    const token = request.headers.get('cookie')?.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${SESSION_COOKIE}=`))?.slice(SESSION_COOKIE.length + 1) ?? '';
+  beforeUpgrade: (request, context) => {
+    if (!originAllowed(request.headers.get('origin'), request.headers.get('host'), config)) return new Response(null, { status: 403 });
+    const token = requestToken({ cookie: request.headers.get('cookie') ?? undefined,
+      authorization: request.headers.get('authorization') ?? undefined }, context.token);
     if (!sessionValid(token, config)) return new Response(null, { status: 401 });
   },
 });
@@ -46,7 +46,6 @@ const gameServer = new Server({
     });
     app.post('/api/login', (req, res) => {
       res.setHeader('Cache-Control', 'no-store');
-      if (!originAllowed(req)) { res.status(403).json({ error: 'Use the game’s own login page.' }); return; }
       const ip = req.ip ?? req.socket.remoteAddress ?? 'unknown';
       const now = Date.now();
       let attempts = loginAttempts.get(ip);
@@ -62,8 +61,9 @@ const gameServer = new Server({
         res.status(401).json({ error: 'That password did not match. Try again.' }); return;
       }
       loginAttempts.delete(ip);
-      res.setHeader('Set-Cookie', sessionCookie(issueSession(config), config));
-      res.json({ authenticated: true });
+      const token = issueSession(config);
+      res.setHeader('Set-Cookie', sessionCookie(token, config));
+      res.json({ authenticated: true, passwordRequired: true, token });
     });
     app.get('/api/metrics', (req, res) => {
       if (!isAuthenticated(req, config)) { res.status(401).json({ error: 'Authentication required.' }); return; }
@@ -93,6 +93,12 @@ const gameServer = new Server({
   },
 });
 
+// The outer gate owns CORS for both Express and Colyseus. Disable the framework's
+// permissive defaults so they cannot overwrite the configured origin allowlist.
+for (const header of Object.keys(matchMaker.controller.DEFAULT_CORS_HEADERS)) {
+  Reflect.deleteProperty(matchMaker.controller.DEFAULT_CORS_HEADERS, header);
+}
+matchMaker.controller.getCorsHeaders = () => ({});
 gameServer.define('arena', createArenaRoom({ auth: config, maxRooms }));
 await gameServer.serverless();
 
@@ -104,8 +110,21 @@ httpServer.on('request', (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'same-origin');
   res.setHeader('X-Frame-Options', 'DENY');
+  if (!originAllowed(req.headers.origin, req.headers.host, config)) {
+    res.writeHead(403, { 'Content-Type': 'application/json', Vary: 'Origin' });
+    res.end(JSON.stringify({ error: 'Origin not allowed.' })); return;
+  }
+  for (const [name, value] of Object.entries(corsHeaders(req.headers.origin, req.headers.host, config))) {
+    res.setHeader(name, value);
+  }
+  if (req.method === 'OPTIONS') {
+    if (!req.headers.origin || !preflightAllowed(req.headers['access-control-request-method'], req.headers['access-control-request-headers'])) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Request not allowed.' })); return;
+    }
+    res.writeHead(204); res.end(); return;
+  }
   if (req.url?.startsWith('/matchmake')) {
-    if (!originAllowed(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Origin not allowed.' })); return; }
     if (!isAuthenticated(req, config)) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Enter the arena password first.' })); return; }
   }
   for (const handler of requestHandlers) handler.call(httpServer, req, res);

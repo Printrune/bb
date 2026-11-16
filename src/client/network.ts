@@ -2,8 +2,9 @@ import { Client } from '@colyseus/sdk';
 import type { Room } from '@colyseus/sdk';
 import { matchSnapshotSchema } from '../shared/protocol';
 import type { JoinOptions, MatchState, PlayerInput } from '../shared/protocol';
-import { STATIC_HOSTING } from './config';
+import { GAME_SERVER_URL, MULTIPLAYER_AVAILABLE, STATIC_HOSTING } from './config';
 import { createLocalPractice } from './local-practice';
+import { sessionToken } from './session';
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 export interface ConnectionOptions {
@@ -11,11 +12,41 @@ export interface ConnectionOptions {
   onStatus(status: ConnectionStatus): void;
   onError(message: string): void;
 }
-const SESSION_KEY = 'battlebots:reconnection';
+const SESSION_KEY = `battlebots:reconnection:${GAME_SERVER_URL}`;
 
 export function createConnection(options: ConnectionOptions) {
-  if (STATIC_HOSTING) return createLocalPractice(options);
-  const client = new Client(window.location.origin);
+  if (!STATIC_HOSTING) return createServerConnection(options);
+  const practice = createLocalPractice(options);
+  if (!MULTIPLAYER_AVAILABLE) return practice;
+  const online = createServerConnection(options);
+  let active: typeof practice | typeof online = practice;
+
+  async function activate(target: typeof active): Promise<void> {
+    if (active !== target) { await active.leave(); active = target; }
+  }
+
+  return {
+    async create(selection: JoinOptions): Promise<string> {
+      await activate(selection.practice ? practice : online);
+      return active.create(selection);
+    },
+    async join(roomId: string, selection: JoinOptions): Promise<void> {
+      await activate(online);
+      return online.join(roomId, selection);
+    },
+    async reconnect(): Promise<boolean> { return active.reconnect(); },
+    sendInput(input: PlayerInput) { active.sendInput(input); },
+    ready() { active.ready(); },
+    pulverize() { active.pulverize(); },
+    rematch() { active.rematch(); },
+    ping() { active.ping(); },
+    leave() { return active.leave(); },
+  };
+}
+
+function createServerConnection(options: ConnectionOptions) {
+  const client = new Client(GAME_SERVER_URL);
+  client.http.options.credentials = 'same-origin';
   let room: Room<unknown> | null = null;
   let connected = false;
   let generation = 0;
@@ -61,6 +92,7 @@ export function createConnection(options: ConnectionOptions) {
   async function connect(operation: () => Promise<Room<unknown>>) {
     generation += 1;
     const current = generation;
+    client.http.authToken = sessionToken();
     options.onStatus('connecting');
     try {
       const joined = await operation();

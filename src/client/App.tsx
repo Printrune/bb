@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { z } from 'zod';
 import { BOTS, MATCH_SECONDS, NEUTRAL_INPUT, PAINTS, paintColor } from '../shared/protocol';
 import { KILLSAW_UNLOCK_SECONDS, PULVERIZERS } from '../shared/arena';
 import { damageParts, driveCondition, IMMOBILIZATION_SECONDS, partIntegrity } from '../shared/damage';
@@ -13,11 +12,11 @@ import { BotPortrait } from './components/BotPortrait';
 import { Joystick } from './components/Joystick';
 import { DEFEAT_REVEAL_SECONDS } from '../shared/presentation';
 import type { VRAction, VRStatus } from '../shared/vr';
-import { BASE_PATH, STATIC_HOSTING } from './config';
+import { BASE_PATH, MULTIPLAYER_AVAILABLE, STATIC_HOSTING } from './config';
+import { loginSession, readSession } from './session';
 
-const sessionSchema = z.object({ authenticated: z.boolean(), passwordRequired: z.boolean() });
-const errorSchema = z.object({ error: z.string() });
 type Authentication = 'checking' | 'required' | 'authenticated' | 'failed';
+type OnlineAction = 'create' | 'join';
 interface DamageNotice { title: string; detail: string }
 const WHEEL_ORDER: DamagePartId[] = ['wheel-front-left', 'wheel-front-right', 'wheel-rear-left', 'wheel-rear-right', 'wheel-left', 'wheel-right'];
 const WHEEL_LABELS: Partial<Record<DamagePartId, string>> = {
@@ -101,6 +100,8 @@ export function App() {
   const currentSnapshot = useRef<MatchState | null>(null);
   const localPlayerId = useRef<string | null>(null);
   const activeRoom = useRef(false);
+  const requestedMatch = useRef(false);
+  const authRequestGeneration = useRef(0);
   const acceptSnapshots = useRef(false);
   const input = useRef({ ...NEUTRAL_INPUT });
   const sequence = useRef(0);
@@ -122,7 +123,9 @@ export function App() {
   const [inRoom, setInRoom] = useState(false);
   const [roomId, setRoomId] = useState('');
   const [status, setStatus] = useState<ConnectionStatus>('idle');
-  const [authentication, setAuthentication] = useState<Authentication>(STATIC_HOSTING ? 'authenticated' : 'checking');
+  const [authentication, setAuthentication] = useState<Authentication>(MULTIPLAYER_AVAILABLE ? 'checking' : 'authenticated');
+  const [authOpen, setAuthOpen] = useState(!STATIC_HOSTING || (MULTIPLAYER_AVAILABLE && Boolean(initialRoom())));
+  const [pendingOnlineAction, setPendingOnlineAction] = useState<OnlineAction | null>(STATIC_HOSTING && MULTIPLAYER_AVAILABLE && initialRoom() ? 'join' : null);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [busy, setBusy] = useState('');
@@ -290,34 +293,45 @@ export function App() {
   useEffect(() => { renderer.current?.setOverview(overview); }, [overview, rendererReady]);
 
   const checkSession = useCallback(async () => {
-    if (STATIC_HOSTING) { setAuthentication('authenticated'); return; }
+    if (!MULTIPLAYER_AVAILABLE) { setAuthentication('authenticated'); return; }
+    const generation = ++authRequestGeneration.current;
     setAuthentication('checking'); setAuthError('');
     try {
-      const response = await fetch('/api/session', { credentials: 'same-origin' });
-      if (!response.ok) throw new Error('The arena server is starting. Try again in a moment.');
-      const session = sessionSchema.parse(await response.json());
+      const session = await readSession();
+      if (generation !== authRequestGeneration.current) return;
       setAuthentication(session.authenticated ? 'authenticated' : 'required');
     } catch (cause: unknown) {
+      if (generation !== authRequestGeneration.current) return;
       setAuthentication('failed');
       setAuthError(cause instanceof Error ? cause.message : 'Could not reach the arena server.');
     }
   }, []);
 
-  useEffect(() => { void checkSession(); }, [checkSession]);
+  useEffect(() => {
+    if (!STATIC_HOSTING || (MULTIPLAYER_AVAILABLE && initialRoom())) void checkSession();
+  }, [checkSession]);
 
   useEffect(() => {
-    if (authentication !== 'authenticated') return;
+    if (STATIC_HOSTING || authentication !== 'authenticated' || requestedMatch.current) return;
     let cancelled = false;
     acceptSnapshots.current = true;
     void connection.current?.reconnect().then((found) => {
       if (cancelled || activeRoom.current) return;
       if (!found) {
         acceptSnapshots.current = false;
-        if (initialRoom() && !STATIC_HOSTING) setJoinOpen(true);
+        if (initialRoom()) setJoinOpen(true);
       }
     });
     return () => { cancelled = true; };
   }, [authentication]);
+
+  useEffect(() => {
+    if (authentication !== 'authenticated' || !pendingOnlineAction || !rendererReady || activeRoom.current) return;
+    const action = pendingOnlineAction;
+    setPendingOnlineAction(null); setAuthOpen(false);
+    if (action === 'join') setJoinOpen(true);
+    else void createMatch(false);
+  }, [authentication, pendingOnlineAction, rendererReady]);
 
   useEffect(() => {
     if (!inRoom) return;
@@ -390,16 +404,29 @@ export function App() {
   }, [pulverize, recover, resetInput, toggleWeapon]);
 
   async function login(event: FormEvent) {
-    event.preventDefault(); setBusy('Unlocking arena'); setAuthError('');
+    event.preventDefault();
+    const generation = ++authRequestGeneration.current;
+    setBusy('Unlocking arena'); setAuthError('');
     try {
-      const response = await fetch('/api/login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
-      if (!response.ok) {
-        const parsed = errorSchema.safeParse(await response.json());
-        throw new Error(parsed.success ? parsed.data.error : 'That password did not unlock the arena.');
-      }
+      await loginSession(password);
+      if (generation !== authRequestGeneration.current) return;
       setPassword(''); setAuthentication('authenticated');
-    } catch (cause: unknown) { setAuthError(cause instanceof Error ? cause.message : 'Unable to unlock the arena.'); }
-    finally { setBusy(''); }
+    } catch (cause: unknown) {
+      if (generation === authRequestGeneration.current) setAuthError(cause instanceof Error ? cause.message : 'Unable to unlock the arena.');
+    } finally {
+      if (generation === authRequestGeneration.current) setBusy('');
+    }
+  }
+
+  function requestOnline(action: OnlineAction) {
+    requestedMatch.current = true;
+    setPendingOnlineAction(action); setAuthOpen(true); setError('');
+    void checkSession();
+  }
+
+  function closeAuthentication() {
+    authRequestGeneration.current += 1;
+    setAuthOpen(false); setPendingOnlineAction(null); setPassword(''); setAuthError(''); setBusy('');
   }
 
   function selection(practice: boolean): JoinOptions {
@@ -410,6 +437,9 @@ export function App() {
 
   async function createMatch(practice: boolean) {
     if (!connection.current) return;
+    requestedMatch.current = true;
+    authRequestGeneration.current += 1;
+    setPendingOnlineAction(null); setAuthOpen(false);
     setBusy(practice ? 'Starting practice' : 'Creating arena'); setError(''); acceptSnapshots.current = true;
     try {
       const id = await connection.current.create(selection(practice));
@@ -424,6 +454,7 @@ export function App() {
 
   async function joinMatch(event: FormEvent) {
     event.preventDefault(); if (!connection.current) return;
+    requestedMatch.current = true;
     setBusy('Joining arena'); setError(''); acceptSnapshots.current = true;
     try {
       const id = roomFromInput(joinCode);
@@ -549,9 +580,9 @@ export function App() {
             <div><span>DRIVE</span><strong>{selectedBot.physics.wheelZ.length * 2} wheels</strong></div><div><span>WEAPON</span><strong>{selectedBot.weapon.kind === 'vertical-disc' ? 'Vertical disc' : 'Horizontal bar'}</strong></div><div><span>RECOVERY</span><strong>{selectedBot.physics.selfRight ? 'Self-righting' : 'Invertible'}</strong></div>
           </div>
           <div className="lobby-play">
-            <div className="lobby-mode"><span>{STATIC_HOSTING ? 'SOLO PRACTICE' : 'PRIVATE MATCH'}</span><span>{STATIC_HOSTING ? 'You vs. House Robot' : 'You vs. a friend'}</span></div>
-            <button className="button button-primary lobby-play-button" onClick={() => void createMatch(STATIC_HOSTING)} disabled={isBusy || !rendererReady || authentication !== 'authenticated'}><span>{isBusy ? busy.toUpperCase() : !rendererReady ? 'PREPARING ARENA…' : STATIC_HOSTING ? 'FIGHT NOW' : 'CREATE MATCH'}</span>{!rendererReady || isBusy ? <span className="loader" /> : <Icon name="arrow" size={25} />}</button>
-            {!STATIC_HOSTING ? <div className="lobby-other-modes"><button className="button button-secondary" onClick={() => setJoinOpen(true)} disabled={isBusy || !rendererReady || authentication !== 'authenticated'}>JOIN FRIEND <Icon name="link" size={16} /></button><button className="button button-secondary" onClick={() => void createMatch(true)} disabled={isBusy || !rendererReady || authentication !== 'authenticated'}>PRACTICE <Icon name="arrow" size={16} /></button></div> : null}
+            <div className="lobby-mode"><span>{MULTIPLAYER_AVAILABLE ? 'PRIVATE MATCH' : 'SOLO PRACTICE'}</span><span>{MULTIPLAYER_AVAILABLE ? 'You vs. a friend' : 'You vs. House Robot'}</span></div>
+            <button className="button button-primary lobby-play-button" onClick={() => MULTIPLAYER_AVAILABLE ? requestOnline('create') : void createMatch(true)} disabled={isBusy || !rendererReady}><span>{isBusy ? busy.toUpperCase() : !rendererReady ? 'PREPARING ARENA…' : MULTIPLAYER_AVAILABLE ? 'CREATE MATCH' : 'FIGHT NOW'}</span>{!rendererReady || isBusy ? <span className="loader" /> : <Icon name="arrow" size={25} />}</button>
+            {MULTIPLAYER_AVAILABLE ? <div className="lobby-other-modes"><button className="button button-secondary" onClick={() => requestOnline('join')} disabled={isBusy || !rendererReady}>JOIN FRIEND <Icon name="link" size={16} /></button><button className="button button-secondary" onClick={() => void createMatch(true)} disabled={isBusy || !rendererReady || (!STATIC_HOSTING && authentication !== 'authenticated')}>PRACTICE <Icon name="arrow" size={16} /></button></div> : null}
           </div>
           <details className="lobby-customize"><summary>Customize<span>{PAINTS.find((item) => item.id === paint)?.name}<Icon name="plus" size={15} /></span></summary>
             <div className="lobby-customize-content"><label className="driver-label" htmlFor="driver-name">DRIVER NAME</label><input id="driver-name" className="text-input driver-input" value={driverName} maxLength={20} onChange={(event) => setDriverName(event.target.value)} placeholder="Driver" autoComplete="nickname" />
@@ -563,14 +594,14 @@ export function App() {
 
     </main>
 
-    <footer className="lobby-footer" hidden={inRoom}><span>STEEL. SPARKS. TOTAL DESTRUCTION.</span><span>BATTLEBOTS ARENA <span>V0.7.7</span></span></footer>
+    <footer className="lobby-footer" hidden={inRoom}><span>STEEL. SPARKS. TOTAL DESTRUCTION.</span><span>BATTLEBOTS ARENA <span>V0.8.0</span></span></footer>
 
     {error ? <div className="toast" role="alert"><Icon name="help" size={18} /><span>{error}</span><button className="icon-button" onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16} /></button></div> : null}
 
     {vrReport ? <Modal title="VR report" onClose={() => setVRReport(null)}><textarea className="text-input vr-report" aria-label="VR report" readOnly value={vrReport} onFocus={(event) => event.currentTarget.select()} /></Modal> : null}
 
-    {authentication === 'required' || authentication === 'failed' || authentication === 'checking' ? <Modal title={authentication === 'checking' ? 'Opening the BattleBox.' : authentication === 'failed' ? 'The arena is warming up.' : 'Enter the BattleBox.'}>
-      {authentication === 'checking' ? <div className="session-loading"><span className="loader" /><p>Connecting to the arena server…</p></div> : authentication === 'failed' ? <><p>{authError}</p><button className="button button-primary" onClick={() => void checkSession()}>TRY AGAIN <Icon name="recover" /></button></> : <form onSubmit={(event) => void login(event)}><p>This early build is shared with an arena password. Your invitation is all you need.</p><label className="field-label" htmlFor="arena-password">ARENA PASSWORD</label><input id="arena-password" className="text-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" placeholder="Enter your arena password" />{authError ? <p className="form-error" role="alert">{authError}</p> : null}<button className="button button-primary" disabled={isBusy}>{isBusy ? 'UNLOCKING…' : 'UNLOCK THE ARENA'}<Icon name="arrow" /></button></form>}
+    {authOpen && authentication !== 'authenticated' ? <Modal title={authentication === 'checking' ? 'Opening the BattleBox.' : authentication === 'failed' ? 'The arena is warming up.' : 'Enter the BattleBox.'} onClose={STATIC_HOSTING ? closeAuthentication : undefined}>
+      {authentication === 'checking' ? <div className="session-loading"><span className="loader" /><p>Connecting to the arena server. The first connection can take a minute.</p></div> : authentication === 'failed' ? <><p>{authError}</p><button className="button button-primary" onClick={() => void checkSession()}>TRY AGAIN <Icon name="recover" /></button></> : <form onSubmit={(event) => void login(event)}><p>Enter the shared arena password to play with a friend.</p><label className="field-label" htmlFor="arena-password">ARENA PASSWORD</label><input id="arena-password" className="text-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" placeholder="Enter your arena password" />{authError ? <p className="form-error" role="alert">{authError}</p> : null}<button className="button button-primary" disabled={isBusy}>{isBusy ? 'UNLOCKING…' : 'UNLOCK THE ARENA'}<Icon name="arrow" /></button></form>}
     </Modal> : null}
 
     {joinOpen && authentication === 'authenticated' ? <Modal title="Meet in the BattleBox." onClose={() => setJoinOpen(false)}><form onSubmit={(event) => void joinMatch(event)}><p>Paste your friend’s invitation link or enter their private room code. Your selected bot comes with you.</p><label className="field-label" htmlFor="room-code">INVITATION LINK OR ROOM CODE</label><input id="room-code" className="text-input" value={joinCode} onChange={(event) => setJoinCode(event.target.value)} placeholder="Paste invitation or enter code" required autoComplete="off" /><div className="join-selection"><span className="join-bot-photo"><BotPortrait botId={botId} decorative /></span><div><small>YOUR MACHINE</small><strong>{selectedBot.name}</strong><span>{driverName.trim() || 'Driver'}</span></div></div><button className="button button-primary" disabled={isBusy}>{isBusy ? 'JOINING…' : 'JOIN THE ARENA'}<Icon name="arrow" /></button></form></Modal> : null}

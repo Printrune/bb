@@ -1,5 +1,15 @@
 # Release verification
 
+## v0.8.0 GitHub multiplayer connection
+
+All 82 tests pass, including the new real-server authentication test. The first local run of that test was blocked by local network permissions; its permitted rerun passed. TypeScript, the server/client build, and the Pages production build with a separate server endpoint pass.
+
+`verify:pages-multiplayer` passed against an actual server on a separate origin: two signed sessions without cookies, permitted preflights, rejected hostile origins and invalid tokens, two distinct seats, third-seat rejection, same-seat reconnect, shared hit/damage, and forfeit. The existing full multiplayer check passed through combat, a shared knockout/explosion result, reconnect, repaired rematch, and forfeit.
+
+The production Pages client was checked with two browser tabs. Password login continued the pending Create action; a second tab opened the invitation, selected Tombstone, joined the Witch Doctor player, and both started the same countdown/fight. With the server stopped, the failure dialog could be dismissed and local practice still ran through combat to a result. At 390 x 844 the Create, Join and Practice controls fit inside the viewport without horizontal overflow. Tests used this computer, not two physical devices or a deployed free server.
+
+Public internet play is not activated yet. It requires a connected free hosting account, a deployed game service, the GitHub `GAME_SERVER_URL` repository variable, and successful public-client verification. Until configured, the published Pages site continues to offer solo practice. Quest rendering and input have not changed; a physical cross-device Quest match remains unverified.
+
 ## Current v0.7.7 game-model portraits
 
 The menu now opens with the live gameplay renderer. Both selection-card pictures are browser captures of that same renderer, with the complete selected robot visible. The original studio photographs are no longer public menu assets. Bot selection and the Bot/Arena view switch preserve the existing canvas and game state; selecting paint still updates the live model.

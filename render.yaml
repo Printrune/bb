@@ -1,20 +1,23 @@
 services:
   - type: web
     name: battlebots-arena
+    branch: codex/arena-demo
     runtime: node
     plan: free
     region: frankfurt
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
     startCommand: pnpm start
     healthCheckPath: /health
-    autoDeploy: false
+    autoDeployTrigger: off
     envVars:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
         value: 24
       - key: MAX_ROOMS
-        value: 2
+        value: 1
+      - key: ALLOWED_ORIGINS
+        value: https://printrune.github.io
       - key: DEMO_PASSWORD
         sync: false
       - key: SESSION_SECRET
