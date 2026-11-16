@@ -12,7 +12,9 @@ Build the static edition with `pnpm build:pages`. The output is `dist/pages`, wi
 
 In a compatible headset browser, start a match and select **VR**. Practice waits in the lobby before combat. Version 0.7.5 uses a third-person chase view with native head tracking and a thin, read-only health and clock strip. VR has no screen buttons or pointer rays. The left stick drives. Right A or the right trigger readies, toggles the weapon or requests a rematch, depending on match state. Right B operates recovery, left X uses pulverizers and left Y recenters. Exit through the headset's native system menu.
 
-The user confirmed working immersive VR on a physical Quest 3 with v0.7.4. The v0.7.5 chase view and controller-only interface need a physical retest. Other headsets use runtime WebXR detection and require usable gamepad controls. Compatibility and sustained frame rate remain unverified on those devices. See [VR support and setup](docs/vr-support.md).
+The user confirmed working immersive VR on a physical Quest 3 with v0.7.4 and confirmed that the v0.7.5 behind-the-bot view looks right. Other headsets use runtime WebXR detection and require usable gamepad controls. Compatibility and sustained frame rate remain unverified on those devices. See [VR support and setup](docs/vr-support.md).
+
+The v0.7.6 menu uses authentic studio photos of Witch Doctor and Tombstone. Select a bot, then **Fight now** for solo practice. **Customize** contains driver name and paint; choosing a paint opens the **3D bot** preview. **Photo** restores the original studio portrait and **Arena** shows the BattleBox. [Photo sources](docs/menu-photo-sources.md).
 
 ## Run locally
 
@@ -25,7 +27,7 @@ pnpm dev
 
 Open http://localhost:3000. The development fallback password is `let-the-bots-battle`. A `DEMO_PASSWORD` in `.env` overrides it. Production requires a separate password and signing secret.
 
-Create a match, share its invitation link, and select **Ready** on both devices. For a solo game, select **Try practice**. Practice starts automatically after the countdown.
+Create a match, share its invitation link, and select **Ready** on both devices. For a solo game in the server edition, select **Practice**. Practice starts automatically after the countdown except in compatible VR browsers, where the lobby waits for the driver.
 
 ## Play
 
@@ -33,7 +35,7 @@ On a phone, rotate to landscape during a match. Use the left stick to drive and 
 
 On a keyboard, use WASD or the arrow keys to drive, Space to toggle the weapon, R to recover, and H to operate your two corner pulverizers. The same controls have touch buttons. Sound is off initially. Use the speaker button to enable it.
 
-In the garage, drag the 3D view to inspect a bot from different angles. Use the mouse wheel to zoom. Witch Doctor has an active ribcage self-righter. Tombstone drives inverted and has no active self-righting control. Weapons spin up gradually, coast after power is cut, and lose speed after impacts.
+In the garage, select **3D bot**, then drag the view to inspect the game model from different angles. Use the mouse wheel to zoom. Witch Doctor has an active ribcage self-righter. Tombstone drives inverted and has no active self-righting control. Weapons spin up gradually, coast after power is cut, and lose speed after impacts.
 
 Matches last three minutes. A knockout ends a match immediately. Otherwise, the bot with more health wins. Equal health produces a draw.
 
@@ -49,7 +51,7 @@ Hull life is shown as current/100 in the top HUD and above each bot. Bars turn a
 
 The BattleBox reconstructs the WCVII-era enclosure, worn steel floor, clear protective panels, corner pulverizers and Upper Deck. The screws operate throughout combat and reverse when a robot jams them. Each team operates two corner hammers. Killsaws stay retracted for the first two minutes, then warn before rising beneath nearby robots in the final minute. Arena damage and lifting impulses run on the server. Hazard hits are tracked separately from weapon-hit counts.
 
-Select **Inspect BattleBox** in the garage for a full-arena view. Drag to orbit and scroll to zoom. [Arena sources](docs/arena-references.md) distinguish verified dimensions and operation from approximate hazard positions and force values.
+Select **Arena** in the garage for a full-arena view. Drag to orbit and scroll to zoom. [Arena sources](docs/arena-references.md) distinguish verified dimensions and operation from approximate hazard positions and force values.
 
 ## Verify changes
 

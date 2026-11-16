@@ -8,7 +8,8 @@ import type { DamagePartId } from '../shared/damage';
 import type { ArenaRenderer, BotId, JoinOptions, MatchState, PaintId, PlayerInput, PlayerSnapshot } from '../shared/protocol';
 import { createConnection } from './network';
 import type { ConnectionStatus } from './network';
-import { BotSilhouette, Icon } from './components/Icon';
+import { Icon } from './components/Icon';
+import { BotPortrait } from './components/BotPortrait';
 import { Joystick } from './components/Joystick';
 import { DEFEAT_REVEAL_SECONDS } from '../shared/presentation';
 import type { VRAction, VRStatus } from '../shared/vr';
@@ -128,7 +129,8 @@ export function App() {
   const [error, setError] = useState('');
   const [rendererReady, setRendererReady] = useState(false);
   const [rendererError, setRendererError] = useState('');
-  const [overview, setOverview] = useState(false);
+  const [previewMode, setPreviewMode] = useState<'photo' | 'robot' | 'arena'>('photo');
+  const overview = previewMode === 'arena';
   const [vrStatus, setVRStatus] = useState<VRStatus>({ kind: 'checking' });
   const [vrAttempted, setVRAttempted] = useState(false);
   const [vrReport, setVRReport] = useState<string | null>(null);
@@ -488,29 +490,31 @@ export function App() {
   };
 
   return <div className={`app ${inRoom ? 'app--match' : ''} ${immersive ? 'app--vr' : ''}`}>
-    <header className="site-header" hidden={inRoom}>
+    <header className="lobby-header" hidden={inRoom}>
       <a href={BASE_PATH} className="wordmark" aria-label="BattleBots Arena home"><span>BATTLE<span className="wordmark-bots">BOTS</span><sup>®</sup></span><small>ARENA</small></a>
-      <nav className="header-nav" aria-label="Main navigation"><span className="nav-active">THE GARAGE</span></nav>
-      <div className="header-right"><span className="alpha-badge"><i /> PLAYABLE ALPHA</span><button className="icon-button sound-button" onClick={() => setMuted(!muted)} aria-label={muted ? 'Turn sound on' : 'Mute sound'}><Icon name={muted ? 'muted' : 'sound'} /></button></div>
+      <div className="lobby-header-right"><span className="lobby-edition"><i /> {STATIC_HOSTING ? 'FREE TO PLAY' : 'FRIENDS. RIVALS. ROBOTS.'}</span><button className="icon-button" onClick={() => setMuted(!muted)} aria-label={muted ? 'Turn sound on' : 'Mute sound'}><Icon name={muted ? 'muted' : 'sound'} /></button></div>
     </header>
 
-    <main className={inRoom ? 'match-main' : 'garage-main'}>
-      <section className="hero" hidden={inRoom}>
-        <div><div className="eyebrow hero-eyebrow"><span className="status-dot" /> ROBOT FIGHTING. NO HOLDING BACK.</div><h1>BUILT TO<br /><span>BREAK THINGS.</span></h1></div>
-        <div className="hero-copy"><span className="index-label">01 / ENTER THE ARENA</span><p>Your favorite bots. Your controls.<br />{STATIC_HOSTING ? "Face the House Robot. Settle it in the BattleBox." : "Challenge a friend. Settle it in the BattleBox."}</p><div className="hero-facts"><span>{STATIC_HOSTING ? "FREE SOLO PRACTICE" : "REAL-TIME 1V1"}</span><i /><span>PLAY IN YOUR BROWSER</span></div></div>
+    <main className={inRoom ? 'match-main' : 'lobby-main'}>
+      <section className="lobby-intro" hidden={inRoom}>
+        <div><p className="lobby-kicker">IT'S ROBOT FIGHTING TIME</p><h1>PICK YOUR BOT.<br /><span>OWN THE BOX.</span></h1></div>
+        <div className="lobby-match-facts"><span><strong>250</strong> LB MACHINES</span><span><strong>3:00</strong> ON THE CLOCK</span><span><Icon name="vr" size={27} />VR READY</span></div>
       </section>
 
       <div className="arena-layout">
-        <section className={`arena-stage ${inRoom ? 'arena-stage--match' : ''}`} aria-label="3D BattleBox arena">
-          <canvas ref={canvas} className="arena-canvas" aria-label="Live 3D robot arena" />
-          {!rendererReady && !rendererError ? <div className="arena-loading"><span className="loader" /><span>POWERING UP THE BATTLEBOX</span></div> : null}
+        <section className={`arena-stage ${inRoom ? 'arena-stage--match' : `lobby-stage ${previewMode === 'photo' ? 'lobby-stage--photo' : ''}`}`} aria-label={inRoom ? '3D BattleBox arena' : `${selectedBot.name} preview`}>
+          <canvas ref={canvas} className="arena-canvas" aria-label="Live 3D robot arena" aria-hidden={!inRoom && previewMode === 'photo'} />
+          {!rendererReady && !rendererError && (inRoom || previewMode !== 'photo') ? <div className="arena-loading"><span className="loader" /><span>POWERING UP THE BATTLEBOX</span></div> : null}
           {rendererError ? <div className="arena-loading arena-failed"><Icon name="help" size={30} /><strong>Let’s get your arena running.</strong><p>{rendererError}</p><button className="button button-secondary" onClick={() => window.location.reload()}>RELOAD ARENA</button></div> : null}
 
           {!inRoom ? <>
-            <div className="preview-corner"><span className="live-pill"><i /> LIVE 3D PREVIEW</span><button className="arena-view-toggle" onClick={() => setOverview((enabled) => !enabled)} aria-pressed={overview}>{overview ? 'BACK TO ROBOT' : 'INSPECT BATTLEBOX'}<Icon name="arrow" size={12} /></button></div>
-            <div className="preview-reticle preview-reticle--tl" /><div className="preview-reticle preview-reticle--br" />
-            <div className="preview-info"><div><span className="preview-number">{overview ? '48' : selectedBot.number}</span><div><span className="eyebrow">{overview ? '48 × 48 FT' : selectedBot.category}</span><h2>{overview ? 'THE BATTLEBOX' : selectedBot.name}</h2><p>{overview ? 'Steel floor · Upper Deck · active hazards' : selectedBot.tagline}</p><span className="bot-version">{overview ? 'WCVII-ERA ARENA' : botVersion}</span></div></div>{!overview ? <span className="preview-weight">250<span>LB<br />CLASS</span></span> : null}</div>
-            <div className="preview-bottom"><span>3D PROTOTYPE <i /> ARENA V0.7.5</span></div>
+            {previewMode === 'photo' ? <div className="lobby-photo"><BotPortrait key={botId} botId={botId} featured /></div> : null}
+            <div className="lobby-stage-top"><span className="lobby-photo-label">{previewMode === 'photo' ? 'THE REAL MACHINE' : overview ? 'THE BATTLEBOX' : 'IN-GAME MODEL'}</span><div className="preview-switch" role="group" aria-label="Preview view">
+              <button aria-pressed={previewMode === 'photo'} onClick={() => setPreviewMode('photo')}>Photo</button>
+              <button aria-pressed={previewMode === 'robot'} onClick={() => setPreviewMode('robot')}>3D bot</button>
+              <button aria-pressed={overview} onClick={() => setPreviewMode('arena')}>Arena</button>
+            </div></div>
+            <div className="lobby-stage-caption"><div><span className="lobby-bot-edition">{overview ? '48 × 48 FT · ACTIVE HAZARDS' : botVersion}</span><h2>{overview ? 'THE BATTLEBOX' : selectedBot.name}</h2></div><span className="lobby-bot-number" aria-hidden="true">{overview ? '48' : selectedBot.number}</span></div>
           </> : <>
             <div className="match-header"><HealthBar player={local} local /><div className="match-clock"><span>{phase?.kind === 'finished' ? 'MATCH ENDED' : phase?.kind === 'fighting' ? 'ROUND 01' : 'BATTLEBOTS ARENA'}</span><strong>{phase?.kind === 'finished' ? 'FINAL' : phase?.kind === 'fighting' ? formatTime(phase.seconds) : formatTime(MATCH_SECONDS)}</strong><span className={`connection-label ${status === 'connected' || phase?.kind === 'finished' ? '' : 'connection-label--lost'}`}><i />{phase?.kind === 'finished' ? 'COMPLETE' : status === 'connected' ? 'LIVE' : status.toUpperCase()}</span></div><HealthBar player={opponent} /></div>
             {fighting ? <div className={`arena-hazards ${sawCutting ? 'arena-hazards--cutting' : sawWarning ? 'arena-hazards--warning' : ''}`} aria-label="Arena hazard status"><span className="hazard-saws"><i />KILLSAWS {sawUnlockIn > 0 ? <>IN <strong>{formatTime(sawUnlockIn)}</strong></> : <strong>{sawCutting ? 'CUTTING' : sawWarning ? 'WARNING' : 'ARMED'}</strong>}</span><span className="hazard-screws">SCREWS <strong>{snapshot?.arena.hazards.some((hazard) => hazard.kind === 'screw' && hazard.active) ? 'LIVE' : 'STANDBY'}</strong></span></div> : null}
@@ -536,22 +540,32 @@ export function App() {
           </>}
         </section>
 
-        <aside className="garage-panel" hidden={inRoom}>
-          <div className="panel-heading"><span className="eyebrow">CHOOSE YOUR MACHINE</span><span className="tiny-label">02 AVAILABLE</span></div>
-          <div className="roster">
-            {Object.values(BOTS).map((bot) => <button key={bot.id} className={`bot-card ${botId === bot.id ? 'bot-card--selected' : ''}`} onClick={() => { setBotId(bot.id); setPaint('signature'); }} aria-pressed={botId === bot.id}>
-              <span className="bot-index">{bot.number}</span><div className="bot-card-copy"><span className="bot-category">{bot.category}</span><strong>{bot.name}</strong></div><div className="bot-card-visual" style={{ color: bot.accent }}><BotSilhouette horizontal={bot.id === 'tombstone'} /></div><span className="selection-indicator">{botId === bot.id ? <Icon name="check" size={12} /> : null}</span>
+        <aside className="lobby-setup" hidden={inRoom} aria-label="Choose your bot and play">
+          <div className="lobby-roster-heading"><h2>CHOOSE YOUR MACHINE</h2><span>02 BOTS</span></div>
+          <div className="lobby-roster" role="group" aria-label="Robot selection">
+            {Object.values(BOTS).map((bot) => <button key={bot.id} className={`lobby-bot ${botId === bot.id ? 'lobby-bot--selected' : ''}`} onClick={() => { setBotId(bot.id); setPaint('signature'); setPreviewMode('photo'); }} aria-label={`Select ${bot.name}`} aria-pressed={botId === bot.id}>
+              <span className="lobby-bot-photo"><BotPortrait botId={bot.id} decorative /></span><span className="lobby-bot-copy"><strong>{bot.name}</strong><span>{bot.weapon.kind === 'vertical-disc' ? 'Vertical spinner' : 'Horizontal spinner'}</span></span><span className="lobby-bot-check" aria-hidden="true">{botId === bot.id ? <Icon name="check" size={15} /> : null}</span>
             </button>)}
           </div>
-          <div className="bot-specs"><div className="spec"><span>DRIVE</span><strong>{selectedBot.physics.wheelZ.length * 2}WD</strong></div><div className="spec"><span>WEAPON</span><strong>{selectedBot.weapon.kind === 'vertical-disc' ? 'VERTICAL DRISC' : 'HORIZONTAL BAR'}</strong></div><div className="spec"><span>RECOVERY</span><strong>{selectedBot.physics.selfRight ? 'ACTIVE SELF-RIGHT' : selectedBot.physics.invertible ? 'INVERTIBLE' : 'NONE'}</strong></div></div>
-          <div className="paint-row"><div><span className="eyebrow">MAKE IT YOURS</span><span className="paint-name">{PAINTS.find((item) => item.id === paint)?.name}</span></div><div className="paint-options" role="group" aria-label="Robot paint">{PAINTS.map((option) => <button key={option.id} className={`paint-chip ${paint === option.id ? 'paint-chip--selected' : ''}`} onClick={() => setPaint(option.id)} aria-label={`${option.name} paint`} aria-pressed={paint === option.id}><i style={{ backgroundColor: paintColor(botId, option.id) }} />{paint === option.id ? <Icon name="check" size={13} /> : null}</button>)}</div></div>
-          <div className="setup-actions"><label className="driver-label" htmlFor="driver-name">DRIVER NAME</label><input id="driver-name" className="text-input driver-input" value={driverName} maxLength={20} onChange={(event) => setDriverName(event.target.value)} placeholder="Driver" autoComplete="nickname" /><button className="button button-primary host-button" onClick={() => void createMatch(STATIC_HOSTING)} disabled={isBusy || !rendererReady || authentication !== 'authenticated'}><span>{isBusy ? busy.toUpperCase() : STATIC_HOSTING ? 'PLAY PRACTICE' : 'CREATE A MATCH'}</span><Icon name="arrow" /></button>{!STATIC_HOSTING ? <><button className="button button-secondary" onClick={() => setJoinOpen(true)} disabled={isBusy || !rendererReady || authentication !== 'authenticated'}><Icon name="link" size={18} /> JOIN A FRIEND</button><div className="practice-row"><button onClick={() => void createMatch(true)} disabled={isBusy || !rendererReady || authentication !== 'authenticated'}>PLAY PRACTICE <Icon name="arrow" size={14} /></button></div></> : null}</div>
+          <div className="lobby-specs" aria-label={`${selectedBot.name} capabilities`}>
+            <div><span>DRIVE</span><strong>{selectedBot.physics.wheelZ.length * 2} wheels</strong></div><div><span>WEAPON</span><strong>{selectedBot.weapon.kind === 'vertical-disc' ? 'Vertical disc' : 'Horizontal bar'}</strong></div><div><span>RECOVERY</span><strong>{selectedBot.physics.selfRight ? 'Self-righting' : 'Invertible'}</strong></div>
+          </div>
+          <div className="lobby-play">
+            <div className="lobby-mode"><span>{STATIC_HOSTING ? 'SOLO PRACTICE' : 'PRIVATE MATCH'}</span><span>{STATIC_HOSTING ? 'You vs. House Robot' : 'You vs. a friend'}</span></div>
+            <button className="button button-primary lobby-play-button" onClick={() => void createMatch(STATIC_HOSTING)} disabled={isBusy || !rendererReady || authentication !== 'authenticated'}><span>{isBusy ? busy.toUpperCase() : !rendererReady ? 'PREPARING ARENA…' : STATIC_HOSTING ? 'FIGHT NOW' : 'CREATE MATCH'}</span>{!rendererReady || isBusy ? <span className="loader" /> : <Icon name="arrow" size={25} />}</button>
+            {!STATIC_HOSTING ? <div className="lobby-other-modes"><button className="button button-secondary" onClick={() => setJoinOpen(true)} disabled={isBusy || !rendererReady || authentication !== 'authenticated'}>JOIN FRIEND <Icon name="link" size={16} /></button><button className="button button-secondary" onClick={() => void createMatch(true)} disabled={isBusy || !rendererReady || authentication !== 'authenticated'}>PRACTICE <Icon name="arrow" size={16} /></button></div> : null}
+          </div>
+          <details className="lobby-customize"><summary>Customize<span>{PAINTS.find((item) => item.id === paint)?.name}<Icon name="plus" size={15} /></span></summary>
+            <div className="lobby-customize-content"><label className="driver-label" htmlFor="driver-name">DRIVER NAME</label><input id="driver-name" className="text-input driver-input" value={driverName} maxLength={20} onChange={(event) => setDriverName(event.target.value)} placeholder="Driver" autoComplete="nickname" />
+              <div className="lobby-paint"><span>Bot paint</span><div className="paint-options" role="group" aria-label="Robot paint">{PAINTS.map((option) => <button key={option.id} className={`paint-chip ${paint === option.id ? 'paint-chip--selected' : ''}`} onClick={() => { setPaint(option.id); setPreviewMode('robot'); }} aria-label={`${option.name} paint`} aria-pressed={paint === option.id}><i style={{ backgroundColor: paintColor(botId, option.id) }} />{paint === option.id ? <Icon name="check" size={13} /> : null}</button>)}</div></div>
+            </div>
+          </details>
         </aside>
       </div>
 
     </main>
 
-    <footer className="site-footer" hidden={inRoom}><span>IT’S ROBOT FIGHTING TIME.</span><span>BATTLEBOTS ARENA <i /> EARLY PLAYABLE BUILD <span className="footer-version">V0.7.5</span></span></footer>
+    <footer className="lobby-footer" hidden={inRoom}><span>STEEL. SPARKS. TOTAL DESTRUCTION.</span><span>BATTLEBOTS ARENA <span>V0.7.6</span></span></footer>
 
     {error ? <div className="toast" role="alert"><Icon name="help" size={18} /><span>{error}</span><button className="icon-button" onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16} /></button></div> : null}
 
@@ -561,7 +575,7 @@ export function App() {
       {authentication === 'checking' ? <div className="session-loading"><span className="loader" /><p>Connecting to the arena server…</p></div> : authentication === 'failed' ? <><p>{authError}</p><button className="button button-primary" onClick={() => void checkSession()}>TRY AGAIN <Icon name="recover" /></button></> : <form onSubmit={(event) => void login(event)}><p>This early build is shared with an arena password. Your invitation is all you need.</p><label className="field-label" htmlFor="arena-password">ARENA PASSWORD</label><input id="arena-password" className="text-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" placeholder="Enter your arena password" />{authError ? <p className="form-error" role="alert">{authError}</p> : null}<button className="button button-primary" disabled={isBusy}>{isBusy ? 'UNLOCKING…' : 'UNLOCK THE ARENA'}<Icon name="arrow" /></button></form>}
     </Modal> : null}
 
-    {joinOpen && authentication === 'authenticated' ? <Modal title="Meet in the BattleBox." onClose={() => setJoinOpen(false)}><form onSubmit={(event) => void joinMatch(event)}><p>Paste your friend’s invitation link or enter their private room code. Your selected bot comes with you.</p><label className="field-label" htmlFor="room-code">INVITATION LINK OR ROOM CODE</label><input id="room-code" className="text-input" value={joinCode} onChange={(event) => setJoinCode(event.target.value)} placeholder="Paste invitation or enter code" required autoComplete="off" /><div className="join-selection"><span style={{ color: paintColor(botId, paint) }}><BotSilhouette horizontal={botId === 'tombstone'} /></span><div><small>YOUR MACHINE</small><strong>{selectedBot.name}</strong><span>{driverName.trim() || 'Driver'}</span></div></div><button className="button button-primary" disabled={isBusy}>{isBusy ? 'JOINING…' : 'JOIN THE ARENA'}<Icon name="arrow" /></button></form></Modal> : null}
+    {joinOpen && authentication === 'authenticated' ? <Modal title="Meet in the BattleBox." onClose={() => setJoinOpen(false)}><form onSubmit={(event) => void joinMatch(event)}><p>Paste your friend’s invitation link or enter their private room code. Your selected bot comes with you.</p><label className="field-label" htmlFor="room-code">INVITATION LINK OR ROOM CODE</label><input id="room-code" className="text-input" value={joinCode} onChange={(event) => setJoinCode(event.target.value)} placeholder="Paste invitation or enter code" required autoComplete="off" /><div className="join-selection"><span className="join-bot-photo"><BotPortrait botId={botId} decorative /></span><div><small>YOUR MACHINE</small><strong>{selectedBot.name}</strong><span>{driverName.trim() || 'Driver'}</span></div></div><button className="button button-primary" disabled={isBusy}>{isBusy ? 'JOINING…' : 'JOIN THE ARENA'}<Icon name="arrow" /></button></form></Modal> : null}
 
 
   </div>;

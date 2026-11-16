@@ -2,13 +2,13 @@
 
 The VR build targets WebXR browsers, with Quest 3 as the first hardware test target. It checks whether the browser can start an `immersive-vr` session. It does not identify support from the headset's brand or user-agent string. Browser support, available input and graphics performance all affect whether a particular headset can play.
 
-The user confirmed working immersive VR on a physical Quest 3 with v0.7.4. The v0.7.5 chase view and controller-only interface still need a physical retest. Emulation does not establish comfort or sustained headset performance.
+The user confirmed working immersive VR on a physical Quest 3 with v0.7.4. The user also confirmed that the v0.7.5 behind-the-bot view looks right. Emulation does not establish comfort or sustained headset performance.
 
 ## Headset targets
 
 | Headset family | Browser route | Status for this game |
 | --- | --- | --- |
-| Meta Quest 3 and 3S, plus other capable Quest devices | Meta Quest Browser; Wolvic is another WebXR browser | Quest 3 immersive VR worked in the user's v0.7.4 test. The v0.7.5 view and input changes, other Quest devices, and sustained performance need verification. [Meta browser specifications](https://developers.meta.com/vr/documentation/web/browser-specs/) |
+| Meta Quest 3 and 3S, plus other capable Quest devices | Meta Quest Browser; Wolvic is another WebXR browser | Quest 3 immersive VR worked in the user's v0.7.4 test. The user confirmed the v0.7.5 view looks right. Other Quest devices and sustained performance need verification. [Meta browser specifications](https://developers.meta.com/vr/documentation/web/browser-specs/) |
 | PICO 4 family and supported PICO Neo3 devices | A supported Wolvic build; test the installed browser's capabilities | Conditional target. Wolvic lists these device families and the official PICO store describes its immersive WebXR support. [Wolvic supported devices](https://www.wolvic.com/en/faq/), [official PICO listing](https://store-global.picoxr.com/global/detail/1/7171016990772166662) |
 | Android XR headsets | Chrome for Android XR | Conditional target. Google documents WebXR, gamepad and hand-input support. Actual inputs and frame rate still need verification. [Android XR web development](https://developer.android.com/develop/xr/web) |
 | Apple Vision Pro | Safari on visionOS with immersive WebXR support | Unverified. The game currently requires usable gamepad controls and has no hand/gaze driving interface. Browser WebXR support alone is insufficient. [WebKit's WebXR announcement](https://webkit.org/blog/15865/webkit-features-in-safari-18-0/) |
@@ -55,7 +55,7 @@ Open [printrune.github.io/bb](https://printrune.github.io/bb/) to play. Run `pnp
 
 GitHub Pages provides static files; it does not run a Node or WebSocket game server. The static build therefore provides solo practice and VR practice. Online create/join options require a separately hosted multiplayer server. [GitHub Pages documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages)
 
-The user confirmed the deployed v0.7.4 game worked in immersive VR on Quest 3. The v0.7.5 chase view still needs a physical retest and sustained frame-time measurements.
+The user confirmed the deployed v0.7.4 game worked in immersive VR on Quest 3. The user also confirmed the v0.7.5 chase view looks right. Sustained frame-time measurements remain outstanding.
 
 ## Optional online server
 

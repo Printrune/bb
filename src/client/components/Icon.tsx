@@ -24,16 +24,3 @@ export function Icon({ name, size = 20, style }: { name: IconName; size?: number
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={style}>{paths[name]}</svg>;
 }
-
-export function BotSilhouette({ horizontal = false }: { horizontal?: boolean }) {
-  return <svg className="bot-silhouette" viewBox="0 0 126 66" fill="none" aria-hidden="true">
-    <ellipse cx="63" cy="57" rx="48" ry="6" fill="black" opacity=".3" />
-    <path d="m27 24 39-10 36 13-39 15z" fill="#51575a" stroke="#92989a" strokeWidth="1.2" />
-    <path d="m27 24 36 18v14L27 38z" fill="#282e31" stroke="#6e7476" />
-    <path d="m63 42 39-15v15L63 56z" fill="#373e41" stroke="#737a7c" />
-    <path d="m37 26 28-7 26 9-28 10z" fill="currentColor" opacity=".85" />
-    <ellipse cx="32" cy="40" rx="8" ry="12" fill="#111415" stroke="#777f82" strokeWidth="2" />
-    <ellipse cx="88" cy="48" rx="9" ry="11" fill="#111415" stroke="#777f82" strokeWidth="2" />
-    {horizontal ? <><path d="m70 33 43 3-1 7-43-4z" fill="#cbd0cc" stroke="#fff" opacity=".8" /><circle cx="82" cy="37" r="5" fill="#333a3c" /></> : <><ellipse cx="80" cy="31" rx="5" ry="13" transform="rotate(28 80 31)" fill="#bcc2b7" stroke="currentColor" strokeWidth="3" /><path d="m29 25-8 4 9 5M39 22l-8 3 9 5" stroke="currentColor" strokeWidth="3" /></>}
-  </svg>;
-}

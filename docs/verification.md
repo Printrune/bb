@@ -1,6 +1,16 @@
 # Release verification
 
-## Current v0.7.5 checks
+## Current v0.7.6 menu checks
+
+All 77 automated tests and TypeScript checks pass. Both the server-edition client and GitHub Pages production bundles build successfully. The two public studio photographs match the original reference files byte for byte, and both load at 1140 × 760 through the `/bb/` asset path.
+
+The production Pages bundle was exercised in a browser at desktop width, 390 × 844 and 320 × 640. Bot selection updates the photo and capabilities. Customize opens driver-name and paint controls; a paint selection switches to the 3D model. Photo, 3D bot and Arena views work without replacing the canvas. Starting practice from the photo view enters the real simulation with the selected driver name; combat reaches a result and returns to the menu. At 320 pixels the document has no horizontal overflow and the play action remains pinned to the bottom.
+
+VR rendering, head tracking and controller input are unchanged in this release. The menu and its fixed mobile action are hidden during matches. Native Quest testing was not repeated for this menu-only change.
+
+The local server edition was also checked through its password screen. Tombstone selection carries into the friend-invitation dialog and a newly created private room, with 100 hull life and both wheels present. The normal lobby, invitation and Ready controls appear after the photo menu is dismissed.
+
+## v0.7.5 VR checks
 
 All 77 automated tests pass, including VR controller input and the chase tracking parent. The read-only HUD proof also passes with one non-pickable mesh, one material and no pointer observers. It checks health, clock and result status, head-pose following, view bounds, near-plane clearance and disposal. Run `pnpm test` and `pnpm verify:vr-hud` to repeat these checks.
 
@@ -8,7 +18,7 @@ Version 0.7.5 follows the player's bot with a third-person chase view. WebXR kee
 
 The production Pages bundle passed stereo emulation with real projection textures, 219 rendered frames and no graphics errors. A timed controller sequence started combat, drove the robot and moved the chase camera about five feet. A quarter-meter physical head movement shifted the rendered view by 0.82 feet; Y recenter restored the chase center. A second session restarted a finished fight through the right trigger and repeated the driving check. VR hid the browser controls, and normal controls returned after session exit.
 
-The user confirmed working immersive VR on a physical Quest 3 with v0.7.4. The new v0.7.5 chase view and controller-only interface still need a physical comfort and performance test.
+The user confirmed working immersive VR on a physical Quest 3 with v0.7.4 and confirmed that the v0.7.5 behind-the-bot view looks right. This confirms the requested framing; it is not a sustained performance or comfort measurement.
 
 ## Prior-build results
 
