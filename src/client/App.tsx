@@ -594,7 +594,7 @@ export function App() {
 
     </main>
 
-    <footer className="lobby-footer" hidden={inRoom}><span>STEEL. SPARKS. TOTAL DESTRUCTION.</span><span>BATTLEBOTS ARENA <span>V0.8.0</span></span></footer>
+    <footer className="lobby-footer" hidden={inRoom}><span>STEEL. SPARKS. TOTAL DESTRUCTION.</span><span>BATTLEBOTS ARENA <span>V0.8.1</span></span></footer>
 
     {error ? <div className="toast" role="alert"><Icon name="help" size={18} /><span>{error}</span><button className="icon-button" onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16} /></button></div> : null}
 

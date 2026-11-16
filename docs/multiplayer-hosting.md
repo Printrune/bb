@@ -2,6 +2,12 @@
 
 The website remains https://printrune.github.io/bb/ and the code remains in Printrune/bb. A separate Node service owns the shared fight and sends each device the same state. No database is required. Local practice still runs entirely in a worker and does not wait for the server.
 
+## Current deployment
+
+Online multiplayer is enabled. The GitHub `GAME_SERVER_URL` variable points to `https://battlebots-arena-xcd8.onrender.com`. The Render service is `srv-dbt6fps9v7es73cbduk0`, in the confirmed dev's workspace, using the Free plan in Frankfurt. It allows one private two-player match at a time. Automatic server deployment is off; GitHub Pages publishes on pushes to `codex/arena-demo`.
+
+The service was created through the Render integration using the same settings as the blueprint. Its signing secret was generated securely and stored only in Render. The following activation steps describe how to recreate the setup; use the existing service for routine updates.
+
 ## Activate free hosting
 
 1. Connect a Render account and deploy the repository's `render.yaml` from `codex/arena-demo`. The blueprint explicitly selects the **Free** service and one concurrent two-player room.

@@ -10,6 +10,8 @@ When the `GAME_SERVER_URL` repository variable is configured, the menu offers **
 
 Play the free edition at [printrune.github.io/bb](https://printrune.github.io/bb/).
 
+Online multiplayer is now enabled at that same address. The Free Render server supports one private two-player match at a time; Practice remains available independently. The first online connection after inactivity can take about a minute while the server wakes.
+
 Build the static edition with `pnpm build:pages`. The output is `dist/pages`, with assets rooted at `/bb/`. The Pages workflow publishes it over HTTPS from `codex/arena-demo`.
 
 In a compatible headset browser, start a match and select **VR**. Practice waits in the lobby before combat. Version 0.7.5 uses a third-person chase view with native head tracking and a thin, read-only health and clock strip. VR has no screen buttons or pointer rays. The left stick drives. Right A or the right trigger readies, toggles the weapon or requests a rematch, depending on match state. Right B operates recovery, left X uses pulverizers and left Y recenters. Exit through the headset's native system menu.

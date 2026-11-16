@@ -5,6 +5,7 @@ import type { JoinOptions, MatchState, PlayerInput } from '../shared/protocol';
 import { GAME_SERVER_URL, MULTIPLAYER_AVAILABLE, STATIC_HOSTING } from './config';
 import { createLocalPractice } from './local-practice';
 import { sessionToken } from './session';
+import { leaveRoom } from './leave-room';
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 export interface ConnectionOptions {
@@ -65,14 +66,16 @@ function createServerConnection(options: ConnectionOptions) {
     joined.reconnection.maxEnqueuedMessages = 0;
     saveToken(joined.reconnectionToken);
     joined.onMessage('snapshot', (raw: unknown) => {
+      if (room !== joined) return;
       const snapshot = matchSnapshotSchema.safeParse(raw);
       if (snapshot.success) options.onState(snapshot.data, joined.sessionId);
       else options.onError('The game state could not be read. Please rejoin the arena.');
     });
-    joined.onMessage('notice', (message: unknown) => { if (typeof message === 'string') options.onError(message); });
-    joined.onError((_code, message) => options.onError(message ?? 'The connection encountered a problem.'));
-    joined.onDrop(() => { connected = false; options.onStatus('reconnecting'); });
+    joined.onMessage('notice', (message: unknown) => { if (room === joined && typeof message === 'string') options.onError(message); });
+    joined.onError((_code, message) => { if (room === joined) options.onError(message ?? 'The connection encountered a problem.'); });
+    joined.onDrop(() => { if (room === joined) { connected = false; options.onStatus('reconnecting'); } });
     joined.onReconnect(() => {
+      if (room !== joined) return;
       connected = true;
       saveToken(joined.reconnectionToken);
       options.onStatus('connected');
@@ -96,11 +99,11 @@ function createServerConnection(options: ConnectionOptions) {
     options.onStatus('connecting');
     try {
       const joined = await operation();
-      if (current !== generation) { await joined.leave(); throw new Error('Connection cancelled.'); }
+      if (current !== generation) { leaveRoom(joined); throw new Error('Connection cancelled.'); }
       attach(joined);
       return joined.roomId;
     } catch (error) {
-      options.onStatus('disconnected');
+      if (current === generation) options.onStatus('disconnected');
       throw error instanceof Error ? error : new Error('Could not connect to the arena.');
     }
   }
@@ -132,7 +135,7 @@ function createServerConnection(options: ConnectionOptions) {
       connected = false;
       saveToken(null);
       options.onStatus('idle');
-      if (previous) await previous.leave();
+      if (previous) leaveRoom(previous);
     },
   };
 }

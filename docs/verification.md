@@ -1,5 +1,15 @@
 # Release verification
 
+## v0.8.1 public multiplayer activation
+
+The Free Render service is live in Frankfurt and the GitHub Pages server URL is configured. The public cross-origin check passed separate signed sessions, private-room joining, third-seat rejection, automatic same-seat reconnect, shared combat hits/damage and forfeit.
+
+The public one-room capacity check sustained 29.89 updates per second over 20.34 seconds for two clients, with a maximum observed snapshot gap of 109 ms and about 259 MiB process memory. The extra room was rejected as configured. This is a short neutral-driving capacity measurement; combat was checked separately.
+
+Two independent browser sessions on the published `/bb/` site logged in, shared an invitation, chose Witch Doctor and Tombstone, and started the same fight. Driving Tombstone through the actual browser controls hit Witch Doctor, with both clients reporting the identical 79.6547 hull life after the first hit. This verifies the public browser-to-server path, not physical Quest or cellular performance.
+
+That check exposed a delayed socket-close acknowledgement when leaving. The client now sends a consented leave and closes its transport without blocking the garage on that acknowledgement. Every retired room callback is ignored, preventing a late snapshot or reconnection event from replacing a later practice match.
+
 ## v0.8.0 GitHub multiplayer connection
 
 All 82 tests pass, including the new real-server authentication test. The first local run of that test was blocked by local network permissions; its permitted rerun passed. TypeScript, the server/client build, and the Pages production build with a separate server endpoint pass.
@@ -8,7 +18,7 @@ All 82 tests pass, including the new real-server authentication test. The first 
 
 The production Pages client was checked with two browser tabs. Password login continued the pending Create action; a second tab opened the invitation, selected Tombstone, joined the Witch Doctor player, and both started the same countdown/fight. With the server stopped, the failure dialog could be dismissed and local practice still ran through combat to a result. At 390 x 844 the Create, Join and Practice controls fit inside the viewport without horizontal overflow. Tests used this computer, not two physical devices or a deployed free server.
 
-Public internet play is not activated yet. It requires a connected free hosting account, a deployed game service, the GitHub `GAME_SERVER_URL` repository variable, and successful public-client verification. Until configured, the published Pages site continues to offer solo practice. Quest rendering and input have not changed; a physical cross-device Quest match remains unverified.
+At the end of v0.8.0 preparation, public play still awaited a hosting account. Activation and public verification are recorded above. Quest rendering and input have not changed; a physical cross-device Quest match remains unverified.
 
 ## Current v0.7.7 game-model portraits
 
