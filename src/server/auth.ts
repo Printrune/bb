@@ -5,7 +5,6 @@ export const SESSION_COOKIE = 'battlebots_session';
 const SESSION_AGE_SECONDS = 12 * 60 * 60;
 
 export interface AuthConfig {
-  password: string;
   secret: string;
   production: boolean;
   allowedOrigins: readonly string[];
@@ -13,24 +12,16 @@ export interface AuthConfig {
 
 export function readAuthConfig(env: NodeJS.ProcessEnv): AuthConfig {
   const production = env.NODE_ENV === 'production';
-  const password = env.DEMO_PASSWORD || (production ? '' : 'let-the-bots-battle');
   const secret = env.SESSION_SECRET || (production ? '' : randomBytes(32).toString('hex'));
-  if (!password || secret.length < 32) {
-    throw new Error('Set DEMO_PASSWORD and a SESSION_SECRET of at least 32 characters before production startup.');
+  if (secret.length < 32) {
+    throw new Error('Set a SESSION_SECRET of at least 32 characters before production startup.');
   }
   const allowedOrigins = env.ALLOWED_ORIGINS?.trim()
     ? env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()) : [];
   if (allowedOrigins.some((origin) => parseOrigin(origin) === null)) {
     throw new Error('ALLOWED_ORIGINS must contain comma-separated HTTP or HTTPS origins without paths, credentials, or wildcards.');
   }
-  return { password, secret, production, allowedOrigins: [...new Set(allowedOrigins)] };
-}
-
-export function passwordsEqual(candidate: string, expected: string): boolean {
-  // HMAC produces fixed-size digests, so comparison does not reveal password length.
-  const first = createHmac('sha256', 'battlebots-password-comparison').update(candidate).digest();
-  const second = createHmac('sha256', 'battlebots-password-comparison').update(expected).digest();
-  return timingSafeEqual(first, second);
+  return { secret, production, allowedOrigins: [...new Set(allowedOrigins)] };
 }
 
 export function issueSession(config: AuthConfig, now = Date.now()): string {

@@ -1,5 +1,11 @@
 # Release verification
 
+## v0.8.4 password-free multiplayer
+
+Create match and Join friend now obtain a guest session automatically. The password form, password validation, and password configuration are removed. Signed transport sessions, origin checks, room limits, and four-digit invitation codes remain in use. The older login endpoint accepts a guest connection without a password during the client rollout.
+
+TypeScript passes. Existing server and multiplayer checks have been updated for automatic guest sessions; no extra local test suite was run before publishing.
+
 ## v0.8.3 four-digit match codes
 
 Online room IDs now contain exactly four digits, with leading zeros preserved. The single-process server reserves codes before asynchronous simulation setup and releases them on creation failure or disposal. The lobby displays the code in larger type, and Join friend accepts four-digit codes or invitation links with a numeric mobile keyboard.

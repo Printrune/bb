@@ -18,7 +18,5 @@ services:
         value: 1
       - key: ALLOWED_ORIGINS
         value: https://printrune.github.io
-      - key: DEMO_PASSWORD
-        sync: false
       - key: SESSION_SECRET
         generateValue: true

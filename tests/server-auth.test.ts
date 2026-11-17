@@ -39,11 +39,11 @@ async function rejectedUpgrade(baseUrl: string, origin: string, token: string, e
   });
 }
 
-test('Pages bearer authentication crosses the real HTTP and WebSocket boundaries without cookies', { timeout: 45_000 }, async (context) => {
+test('automatic guest sessions cross the real HTTP and WebSocket boundaries without passwords or cookies', { timeout: 45_000 }, async (context) => {
   const port = await availablePort();
   const baseUrl = `http://127.0.0.1:${port}`;
   const server = spawn(process.execPath, ['--import', 'tsx', 'src/server/index.ts'], {
-    env: { ...process.env, NODE_ENV: 'production', PORT: String(port), DEMO_PASSWORD: 'boundary-test-password',
+    env: { ...process.env, NODE_ENV: 'production', PORT: String(port),
       SESSION_SECRET: 'test-only-signing-secret-'.repeat(3), ALLOWED_ORIGINS: PAGES_ORIGIN, MAX_ROOMS: '2' },
     stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
   });
@@ -81,23 +81,33 @@ test('Pages bearer authentication crosses the real HTTP and WebSocket boundaries
     Origin: 'https://attacker.example', 'Access-Control-Request-Method': 'POST' } });
   assert.equal(forbiddenPreflight.status, 403);
   assert.equal(forbiddenPreflight.headers.get('access-control-allow-origin'), null);
-  const login = await api('/api/login', { method: 'POST', headers: { Origin: PAGES_ORIGIN, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: 'boundary-test-password' }) });
-  assert.equal(login.status, 200);
-  assert.equal(login.headers.get('access-control-allow-origin'), PAGES_ORIGIN);
-  const { token } = z.object({ authenticated: z.literal(true), passwordRequired: z.literal(true), token: z.string().min(1) }).parse(await login.json());
-  const cookie = login.headers.get('set-cookie')?.split(';')[0];
+  const guestSession = z.object({ authenticated: z.literal(true), passwordRequired: z.literal(false), token: z.string().min(1) });
+  const opening = await api('/api/session', { headers: { Origin: PAGES_ORIGIN } });
+  assert.equal(opening.status, 200);
+  assert.equal(opening.headers.get('access-control-allow-origin'), PAGES_ORIGIN);
+  assert.equal(opening.headers.get('cache-control'), 'no-store');
+  const { token } = guestSession.parse(await opening.json());
+  const cookie = opening.headers.get('set-cookie')?.split(';')[0];
   assert.ok(cookie);
   const session = await api('/api/session', { headers: { Origin: PAGES_ORIGIN, Authorization: `Bearer ${token}` } });
-  assert.deepEqual(await session.json(), { authenticated: true, passwordRequired: true });
+  assert.equal(guestSession.parse(await session.json()).token, token);
   const sameOrigin = await api('/api/session', { headers: { Origin: baseUrl, Cookie: cookie } });
-  assert.deepEqual(await sameOrigin.json(), { authenticated: true, passwordRequired: true });
+  assert.equal(guestSession.parse(await sameOrigin.json()).token, token);
   const invalid = await api('/api/session', { headers: { Origin: PAGES_ORIGIN, Authorization: 'Bearer invalid', Cookie: cookie } });
-  assert.deepEqual(await invalid.json(), { authenticated: false, passwordRequired: true });
+  assert.notEqual(guestSession.parse(await invalid.json()).token, token, 'Invalid credentials get a new guest session rather than falling back to a cookie.');
+  const guestOpening = await api('/api/session', { headers: { Origin: PAGES_ORIGIN } });
+  const guestToken = guestSession.parse(await guestOpening.json()).token;
+  assert.notEqual(guestToken, token);
+  const legacyOpening = await api('/api/login', { method: 'POST', headers: { Origin: PAGES_ORIGIN } });
+  assert.equal(legacyOpening.status, 200);
+  guestSession.parse(await legacyOpening.json());
   const unauthenticated = await api('/matchmake/create/arena', { method: 'POST', headers: {
     Origin: PAGES_ORIGIN, 'Content-Type': 'application/json' }, body: '{}' });
   assert.equal(unauthenticated.status, 401);
   assert.equal(unauthenticated.headers.get('access-control-allow-origin'), PAGES_ORIGIN);
+  const tampered = await api('/matchmake/create/arena', { method: 'POST', headers: {
+    Origin: PAGES_ORIGIN, 'Content-Type': 'application/json', Authorization: 'Bearer invalid', Cookie: cookie }, body: '{}' });
+  assert.equal(tampered.status, 401);
   await rejectedUpgrade(baseUrl, PAGES_ORIGIN, 'invalid', 401);
   await rejectedUpgrade(baseUrl, 'null', token, 403);
   await rejectedUpgrade(baseUrl, 'https://attacker.example', token, 403);
@@ -108,7 +118,9 @@ test('Pages bearer authentication crosses the real HTTP and WebSocket boundaries
   room.onMessage('snapshot', () => undefined);
   assert.match(room.roomId, /^[0-9]{4}$/);
   assert.ok(room.sessionId);
-  const guest = await client.joinById(room.roomId, { name: 'Guest driver', botId: 'tombstone', paint: 'signature', practice: false });
+  const guestClient = new Client(baseUrl, { headers: { Origin: PAGES_ORIGIN } });
+  guestClient.http.authToken = guestToken;
+  const guest = await guestClient.joinById(room.roomId, { name: 'Guest driver', botId: 'tombstone', paint: 'signature', practice: false });
   guest.onMessage('snapshot', () => undefined);
   assert.equal(guest.roomId, room.roomId);
   const otherRoom = await client.create('arena', { name: 'Other driver', botId: 'witchdoctor', paint: 'signature', practice: false });

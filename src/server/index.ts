@@ -6,7 +6,7 @@ import { Server, matchMaker } from '@colyseus/core';
 import { WebSocketTransport } from '@colyseus/ws-transport';
 import { z } from 'zod';
 import {
-  corsHeaders, isAuthenticated, issueSession, originAllowed, passwordsEqual, preflightAllowed,
+  corsHeaders, isAuthenticated, issueSession, originAllowed, preflightAllowed,
   readAuthConfig, requestToken, sessionCookie, sessionValid,
 } from './auth';
 import { createArenaRoom, roomMetrics } from './room';
@@ -19,7 +19,6 @@ const config = readAuthConfig(process.env);
 const port = z.coerce.number().int().min(1).max(65_535).parse(process.env.PORT ?? 3000);
 const maxRooms = z.coerce.number().int().min(1).max(100).parse(process.env.MAX_ROOMS ?? 4);
 const httpServer = createServer();
-const loginAttempts = new Map<string, { attempts: number; resetAt: number }>();
 let vite: Awaited<ReturnType<typeof import('vite')['createServer']>> | null = null;
 
 const transport = new WebSocketTransport({
@@ -40,31 +39,16 @@ const gameServer = new Server({
     app.set('trust proxy', 1);
     app.use(express.json({ limit: '2kb' }));
     app.get('/health', (_req, res) => res.json({ ok: true }));
-    app.get('/api/session', (req, res) => {
+    const guestSession: express.RequestHandler = (req, res) => {
       res.setHeader('Cache-Control', 'no-store');
-      res.json({ authenticated: isAuthenticated(req, config), passwordRequired: true });
-    });
-    app.post('/api/login', (req, res) => {
-      res.setHeader('Cache-Control', 'no-store');
-      const ip = req.ip ?? req.socket.remoteAddress ?? 'unknown';
-      const now = Date.now();
-      let attempts = loginAttempts.get(ip);
-      if (!attempts || now > attempts.resetAt) {
-        attempts = { attempts: 0, resetAt: now + 60_000 };
-        if (loginAttempts.size > 1_000) loginAttempts.clear();
-        loginAttempts.set(ip, attempts);
-      }
-      if (attempts.attempts >= 10) { res.status(429).json({ error: 'Too many attempts. Please try again in a minute.' }); return; }
-      attempts.attempts += 1;
-      const login = z.object({ password: z.string().max(256) }).safeParse(req.body);
-      if (!login.success || !passwordsEqual(login.data.password, config.password)) {
-        res.status(401).json({ error: 'That password did not match. Try again.' }); return;
-      }
-      loginAttempts.delete(ip);
-      const token = issueSession(config);
+      const existing = requestToken(req.headers);
+      const token = sessionValid(existing, config) ? existing : issueSession(config);
       res.setHeader('Set-Cookie', sessionCookie(token, config));
-      res.json({ authenticated: true, passwordRequired: true, token });
-    });
+      res.json({ authenticated: true, passwordRequired: false, token });
+    };
+    app.get('/api/session', guestSession);
+    // Accept older clients while they refresh to the automatic guest-session flow.
+    app.post('/api/login', guestSession);
     app.get('/api/metrics', (req, res) => {
       if (!isAuthenticated(req, config)) { res.status(401).json({ error: 'Authentication required.' }); return; }
       res.json({ ...roomMetrics, maxRooms, averageTickMs: roomMetrics.ticks ? roomMetrics.totalTickMs / roomMetrics.ticks : 0, memory: process.memoryUsage().rss });
@@ -125,7 +109,7 @@ httpServer.on('request', (req, res) => {
     res.writeHead(204); res.end(); return;
   }
   if (req.url?.startsWith('/matchmake')) {
-    if (!isAuthenticated(req, config)) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Enter the arena password first.' })); return; }
+    if (!isAuthenticated(req, config)) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Reconnect to the arena and try again.' })); return; }
   }
   for (const handler of requestHandlers) handler.call(httpServer, req, res);
 });

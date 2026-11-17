@@ -51,7 +51,7 @@ export function createArenaRoom(dependencies: RoomDependencies) {
       }
       const token = requestToken({ cookie: context.headers.get('cookie') ?? undefined,
         authorization: context.headers.get('authorization') ?? undefined }, context.token);
-      if (!sessionValid(token, dependencies.auth)) throw new ServerError(401, 'Enter the arena password first.');
+      if (!sessionValid(token, dependencies.auth)) throw new ServerError(401, 'Reconnect to the arena and try again.');
       return true;
     }
 

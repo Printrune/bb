@@ -18,8 +18,7 @@ const { Client } = await import('@colyseus/sdk');
 const baseUrl = new URL(process.env.VERIFY_BASE_URL ?? 'http://127.0.0.1:3002').origin;
 const pagesOrigin = new URL(process.env.VERIFY_PAGES_ORIGIN ?? 'http://127.0.0.1:3000').origin;
 const hostileOrigin = 'https://untrusted.example';
-const loginSchema = z.object({ authenticated: z.literal(true), passwordRequired: z.literal(true), token: z.string().min(1) });
-const sessionSchema = z.object({ authenticated: z.boolean(), passwordRequired: z.literal(true) });
+const sessionSchema = z.object({ authenticated: z.literal(true), passwordRequired: z.literal(false), token: z.string().min(1) });
 type Hit = MatchState['events'][number];
 interface Driver {
   room: Room<unknown>;
@@ -57,14 +56,11 @@ function checkCors(response: Response): void {
   assert.match(response.headers.get('vary') ?? '', /(?:^|,\s*)Origin(?:,|$)/i);
 }
 
-async function login(): Promise<string> {
-  const response = await request('/api/login', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: process.env.DEMO_PASSWORD ?? 'let-the-bots-battle' }),
-  });
-  assert.equal(response.status, 200, 'Pages login must succeed without a cookie.');
+async function openGuestSession(): Promise<string> {
+  const response = await request('/api/session');
+  assert.equal(response.status, 200, 'Pages guest sessions must open without a password or cookie.');
   checkCors(response);
-  return loginSchema.parse(await response.json()).token;
+  return sessionSchema.parse(await response.json()).token;
 }
 
 function client(token: string) {
@@ -148,7 +144,7 @@ async function rejectSocket(origin: string, token: string, status: number): Prom
 
 async function main(): Promise<void> {
   assert.notEqual(baseUrl, pagesOrigin, 'Use separate origins to verify Pages connections.');
-  for (const path of ['/api/login', '/matchmake/create/arena']) {
+  for (const path of ['/api/session', '/matchmake/create/arena']) {
     const response = await request(path, { method: 'OPTIONS', headers: {
       'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'authorization,content-type',
     } });
@@ -166,20 +162,20 @@ async function main(): Promise<void> {
   });
   assert.equal(unauthorized.status, 401);
   checkCors(unauthorized);
-  const firstToken = await login();
-  const secondToken = await login();
+  const firstToken = await openGuestSession();
+  const secondToken = await openGuestSession();
   assert.ok(firstToken !== secondToken, 'Independent devices must receive independent session tokens.');
   for (const token of [firstToken, secondToken]) {
     const session = await request('/api/session', { headers: { Authorization: `Bearer ${token}` } });
     assert.equal(session.status, 200);
     checkCors(session);
-    assert.equal(sessionSchema.parse(await session.json()).authenticated, true);
+    assert.equal(sessionSchema.parse(await session.json()).token, token);
   }
   const invalidSession = await request('/api/session', { headers: { Authorization: 'Bearer invalid' } });
-  assert.equal(sessionSchema.parse(await invalidSession.json()).authenticated, false);
+  assert.notEqual(sessionSchema.parse(await invalidSession.json()).token, 'invalid');
   await rejectSocket(pagesOrigin, 'invalid', 401);
   await rejectSocket(hostileOrigin, firstToken, 403);
-  report('pages-access', { allowedPreflights: true, untrustedOriginRejected: true, bearerOnlyLogin: true, unauthorizedSocketsRejected: true });
+  report('pages-access', { allowedPreflights: true, untrustedOriginRejected: true, passwordlessGuestSessions: true, unauthorizedSocketsRejected: true });
 
   const rooms: Driver[] = [];
   let driving: ReturnType<typeof setInterval> | undefined;

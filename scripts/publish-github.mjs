@@ -35,7 +35,7 @@ if (!execute) {
   process.exit(0);
 }
 if (repositoryResponse.status === 404) {
-  const created = await github('/user/repos', { method: 'POST', body: JSON.stringify({ name: repository, private: false, description: 'Mobile-first 3D BattleBots arcade arena. Private online 1v1, practice, touch controls, and password-protected access.' }) });
+  const created = await github('/user/repos', { method: 'POST', body: JSON.stringify({ name: repository, private: false, description: 'Mobile-first 3D BattleBots arcade arena. Private online 1v1 with four-digit match codes, practice, and touch controls.' }) });
   if (!created.ok) throw new Error(`Repository creation failed: ${created.status} ${await created.text()}`);
 } else if (!repositoryResponse.ok) {
   throw new Error(`Cannot inspect repository: ${repositoryResponse.status}`);

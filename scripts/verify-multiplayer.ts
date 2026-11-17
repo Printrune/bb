@@ -57,14 +57,13 @@ export function report(check: string, detail: unknown): void {
 
 export async function createHarness() {
   const baseUrl = new URL(process.env.VERIFY_BASE_URL ?? 'http://localhost:3000').origin;
-  const password = process.env.DEMO_PASSWORD ?? 'let-the-bots-battle';
-  const response = await fetch(`${baseUrl}/api/login`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Origin: baseUrl },
-    body: JSON.stringify({ password }), signal: AbortSignal.timeout(70_000),
+  const response = await fetch(`${baseUrl}/api/session`, {
+    headers: { Origin: baseUrl }, signal: AbortSignal.timeout(70_000),
   });
-  assert.equal(response.status, 200, `Login failed: ${await response.text()}`);
+  assert.equal(response.status, 200, 'Guest session must open without a password.');
+  z.object({ authenticated: z.literal(true), passwordRequired: z.literal(false), token: z.string().min(1) }).parse(await response.json());
   const cookie = response.headers.get('set-cookie')?.split(';')[0] ?? '';
-  assert.ok(cookie, 'Login must issue a session cookie.');
+  assert.ok(cookie, 'Opening a guest session must issue a session cookie.');
   const tracked: TrackedRoom[] = [];
 
   function sdk() {
@@ -198,13 +197,8 @@ async function main(): Promise<void> {
     signal: AbortSignal.timeout(70_000),
   });
   assert.equal(unauthorized.status, 401);
-  const wrongLogin = await fetch(`${baseUrl}/api/login`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: `incorrect-${Date.now()}` }), signal: AbortSignal.timeout(5_000),
-  });
-  assert.equal(wrongLogin.status, 401);
   await rejectUnauthenticatedSocket(baseUrl);
-  report('access', 'Unauthenticated matchmaking, wrong passwords, and direct WebSockets are rejected.');
+  report('access', 'Matchmaking and direct WebSockets require a valid automatically issued guest session.');
 
   const harness = await createHarness();
   let driving: ReturnType<typeof setInterval> | undefined;

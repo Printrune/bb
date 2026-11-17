@@ -14,9 +14,9 @@ import { Joystick } from './components/Joystick';
 import { DEFEAT_REVEAL_SECONDS } from '../shared/presentation';
 import type { VRAction, VRStatus } from '../shared/vr';
 import { BASE_PATH, MULTIPLAYER_AVAILABLE, STATIC_HOSTING } from './config';
-import { loginSession, readSession } from './session';
+import { readSession } from './session';
 
-type Authentication = 'checking' | 'required' | 'authenticated' | 'failed';
+type Authentication = 'checking' | 'authenticated' | 'failed';
 type OnlineAction = 'create' | 'join';
 interface DamageNotice { title: string; detail: string }
 const WHEEL_ORDER: DamagePartId[] = ['wheel-front-left', 'wheel-front-right', 'wheel-rear-left', 'wheel-rear-right', 'wheel-left', 'wheel-right'];
@@ -128,7 +128,6 @@ export function App() {
   const [authentication, setAuthentication] = useState<Authentication>(MULTIPLAYER_AVAILABLE ? 'checking' : 'authenticated');
   const [authOpen, setAuthOpen] = useState(!STATIC_HOSTING || (MULTIPLAYER_AVAILABLE && Boolean(initialRoom())));
   const [pendingOnlineAction, setPendingOnlineAction] = useState<OnlineAction | null>(STATIC_HOSTING && MULTIPLAYER_AVAILABLE && initialRoom() ? 'join' : null);
-  const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -299,9 +298,9 @@ export function App() {
     const generation = ++authRequestGeneration.current;
     setAuthentication('checking'); setAuthError('');
     try {
-      const session = await readSession();
+      await readSession();
       if (generation !== authRequestGeneration.current) return;
-      setAuthentication(session.authenticated ? 'authenticated' : 'required');
+      setAuthentication('authenticated');
     } catch (cause: unknown) {
       if (generation !== authRequestGeneration.current) return;
       setAuthentication('failed');
@@ -405,21 +404,6 @@ export function App() {
     };
   }, [pulverize, recover, resetInput, toggleWeapon]);
 
-  async function login(event: FormEvent) {
-    event.preventDefault();
-    const generation = ++authRequestGeneration.current;
-    setBusy('Unlocking arena'); setAuthError('');
-    try {
-      await loginSession(password);
-      if (generation !== authRequestGeneration.current) return;
-      setPassword(''); setAuthentication('authenticated');
-    } catch (cause: unknown) {
-      if (generation === authRequestGeneration.current) setAuthError(cause instanceof Error ? cause.message : 'Unable to unlock the arena.');
-    } finally {
-      if (generation === authRequestGeneration.current) setBusy('');
-    }
-  }
-
   function requestOnline(action: OnlineAction) {
     requestedMatch.current = true;
     setPendingOnlineAction(action); setAuthOpen(true); setError('');
@@ -428,7 +412,7 @@ export function App() {
 
   function closeAuthentication() {
     authRequestGeneration.current += 1;
-    setAuthOpen(false); setPendingOnlineAction(null); setPassword(''); setAuthError(''); setBusy('');
+    setAuthOpen(false); setPendingOnlineAction(null); setAuthError(''); setBusy('');
   }
 
   function selection(practice: boolean): JoinOptions {
@@ -597,14 +581,14 @@ export function App() {
 
     </main>
 
-    <footer className="lobby-footer" hidden={inRoom}><span>STEEL. SPARKS. TOTAL DESTRUCTION.</span><span>BATTLEBOTS ARENA <span>V0.8.3</span></span></footer>
+    <footer className="lobby-footer" hidden={inRoom}><span>STEEL. SPARKS. TOTAL DESTRUCTION.</span><span>BATTLEBOTS ARENA <span>V0.8.4</span></span></footer>
 
     {error ? <div className="toast" role="alert"><Icon name="help" size={18} /><span>{error}</span><button className="icon-button" onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16} /></button></div> : null}
 
     {vrReport ? <Modal title="VR report" onClose={() => setVRReport(null)}><textarea className="text-input vr-report" aria-label="VR report" readOnly value={vrReport} onFocus={(event) => event.currentTarget.select()} /></Modal> : null}
 
-    {authOpen && authentication !== 'authenticated' ? <Modal title={authentication === 'checking' ? 'Opening the BattleBox.' : authentication === 'failed' ? 'The arena is warming up.' : 'Enter the BattleBox.'} onClose={STATIC_HOSTING ? closeAuthentication : undefined}>
-      {authentication === 'checking' ? <div className="session-loading"><span className="loader" /><p>Connecting to the arena server. The first connection can take a minute.</p></div> : authentication === 'failed' ? <><p>{authError}</p><button className="button button-primary" onClick={() => void checkSession()}>TRY AGAIN <Icon name="recover" /></button></> : <form onSubmit={(event) => void login(event)}><p>Enter the shared arena password to play with a friend.</p><label className="field-label" htmlFor="arena-password">ARENA PASSWORD</label><input id="arena-password" className="text-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" placeholder="Enter your arena password" />{authError ? <p className="form-error" role="alert">{authError}</p> : null}<button className="button button-primary" disabled={isBusy}>{isBusy ? 'UNLOCKING…' : 'UNLOCK THE ARENA'}<Icon name="arrow" /></button></form>}
+    {authOpen && authentication !== 'authenticated' ? <Modal title={authentication === 'checking' ? 'Opening the BattleBox.' : 'The arena is warming up.'} onClose={STATIC_HOSTING ? closeAuthentication : undefined}>
+      {authentication === 'checking' ? <div className="session-loading"><span className="loader" /><p>Connecting to the arena server. The first connection can take a minute.</p></div> : <><p>{authError}</p><button className="button button-primary" onClick={() => void checkSession()}>TRY AGAIN <Icon name="recover" /></button></>}
     </Modal> : null}
 
     {joinOpen && authentication === 'authenticated' ? <Modal title="Meet in the BattleBox." onClose={() => setJoinOpen(false)}><form onSubmit={(event) => void joinMatch(event)}><label className="field-label" htmlFor="room-code">4-DIGIT ROOM CODE OR INVITATION LINK</label><input id="room-code" className="text-input" value={joinCode} onChange={(event) => setJoinCode(event.target.value)} placeholder="0000" inputMode="numeric" spellCheck={false} autoCapitalize="none" required autoComplete="off" /><div className="join-selection"><span className="join-bot-photo"><BotPortrait botId={botId} decorative /></span><div><small>YOUR MACHINE</small><strong>{selectedBot.name}</strong><span>{driverName.trim() || 'Driver'}</span></div></div><button className="button button-primary" disabled={isBusy}>{isBusy ? 'JOINING…' : 'JOIN THE ARENA'}<Icon name="arrow" /></button></form></Modal> : null}

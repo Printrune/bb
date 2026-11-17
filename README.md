@@ -6,7 +6,7 @@ A mobile-first 3D arcade game with private online 1v1 matches, an AI practice op
 
 The GitHub Pages edition runs solo practice in a browser worker. It uses the same Rapier simulation, opponent, damage, hazards and rematches as the server build. Practice needs no game server or password. Online play connects the same Pages site to a separate game server; GitHub Pages cannot run that server itself. The website and source remain on GitHub.
 
-When the `GAME_SERVER_URL` repository variable is configured, the menu offers **Create match**, **Join friend**, and **Practice**. Players open the same `/bb/` site on their devices, enter the shared arena password, and share a private invitation link. Both players select **I'm ready** to start. Without a configured server, the site continues to offer solo **Fight now**. [Free multiplayer setup](docs/multiplayer-hosting.md).
+When the `GAME_SERVER_URL` repository variable is configured, the menu offers **Create match**, **Join friend**, and **Practice**. Players open the same `/bb/` site on their devices and share the four-digit room code or invitation link. No password or account is required. Both players select **I'm ready** to start. Without a configured server, the site continues to offer solo **Fight now**. [Free multiplayer setup](docs/multiplayer-hosting.md).
 
 Play the free edition at [printrune.github.io/bb](https://printrune.github.io/bb/).
 
@@ -29,7 +29,7 @@ pnpm install
 pnpm dev
 ```
 
-Open http://localhost:3000. The development fallback password is `let-the-bots-battle`. A `DEMO_PASSWORD` in `.env` overrides it. Production requires a separate password and signing secret.
+Open http://localhost:3000. Players receive a guest session automatically. Production requires a `SESSION_SECRET` of at least 32 characters; development generates a temporary signing secret.
 
 Create a match, share its invitation link, and select **Ready** on both devices. For a solo game in the server edition, select **Practice**. Practice starts automatically after the countdown except in compatible VR browsers, where the lobby waits for the driver.
 
@@ -81,7 +81,7 @@ pnpm verify:arena-network
 pnpm verify:damage-network
 ```
 
-Set `VERIFY_BASE_URL` to test another server. Set `DEMO_PASSWORD` to its shared game password. The multiplayer check covers login, access rejection, two-player combat, reconnect, rematch, and forfeit. The load check runs four matches with eight clients and verifies the room limit.
+Set `VERIFY_BASE_URL` to test another server. The multiplayer check obtains a guest session automatically and covers invalid-session rejection, two-player combat, reconnect, rematch, and forfeit. The load check runs four matches with eight clients and verifies the room limit.
 
 The arena network check runs the real two-minute killsaw lockout with two clients. It verifies identical hazard states, hammer ownership, and a physical saw hit after unlocking. Allow about two and a half minutes.
 
@@ -91,13 +91,13 @@ The damage network check drives into an exposed wheel through normal combat. It 
 
 1. Push this repository to GitHub.
 2. Create a Render Blueprint from the repository and use `render.yaml`.
-3. Set a private `DEMO_PASSWORD`. Render generates `SESSION_SECRET`.
+3. Let Render generate `SESSION_SECRET`. No game password is needed.
 4. Deploy the service and open its HTTPS URL.
 5. Run the verification scripts against that URL before sharing invitations.
 
 Use the free service for the first small test. It sleeps after inactivity and has compute and bandwidth limits. The blueprint starts with one concurrent two-player room. Measure it before increasing capacity; do not enable a paid tier automatically.
 
-The public repository exposes the source code. The shared game password gates multiplayer access. Passwords and signing keys belong in hosting settings, never client code or GitHub.
+The public repository exposes the source code, and anyone can create or join a match with its code. The server issues signed guest sessions automatically. Keep the signing key in hosting settings, never client code or GitHub.
 
 ## Current boundaries
 

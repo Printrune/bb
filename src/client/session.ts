@@ -1,8 +1,7 @@
 import { z } from 'zod';
 import { GAME_SERVER_URL } from './config';
 
-const sessionSchema = z.object({ authenticated: z.boolean(), passwordRequired: z.boolean() });
-const loginSchema = sessionSchema.extend({ token: z.string().min(1) });
+const sessionSchema = z.object({ authenticated: z.literal(true), passwordRequired: z.literal(false), token: z.string().min(1) });
 const errorSchema = z.object({ error: z.string() });
 const TOKEN_KEY = `battlebots:session:${GAME_SERVER_URL}`;
 let token: string | undefined;
@@ -18,15 +17,13 @@ function storeToken(value: string | undefined): void {
   } catch { /* The current tab can still authenticate without storage. */ }
 }
 
-async function sessionRequest(path: string, password?: string): Promise<unknown> {
+async function sessionRequest(): Promise<unknown> {
   try {
     const headers = new Headers();
     if (token) headers.set('Authorization', `Bearer ${token}`);
-    if (password !== undefined) headers.set('Content-Type', 'application/json');
-    const response = await fetch(new URL(path, GAME_SERVER_URL), {
-      method: password === undefined ? 'GET' : 'POST',
+    const response = await fetch(new URL('/api/session', GAME_SERVER_URL), {
+      method: 'GET',
       credentials: 'same-origin', headers,
-      body: password === undefined ? undefined : JSON.stringify({ password }),
       // A free server can take about a minute to wake after inactivity.
       signal: AbortSignal.timeout(75_000),
     });
@@ -44,14 +41,8 @@ async function sessionRequest(path: string, password?: string): Promise<unknown>
   }
 }
 
-export async function readSession(): Promise<z.infer<typeof sessionSchema>> {
-  const checkedToken = token;
-  const session = sessionSchema.parse(await sessionRequest('/api/session'));
-  if (!session.authenticated && token === checkedToken) storeToken(undefined);
-  return session;
-}
-
-export async function loginSession(password: string): Promise<void> {
-  const session = loginSchema.parse(await sessionRequest('/api/login', password));
-  storeToken(session.token);
+export async function readSession(): Promise<void> {
+  const session = sessionSchema.safeParse(await sessionRequest());
+  if (!session.success) throw new Error('The arena is updating. Please try again shortly.');
+  storeToken(session.data.token);
 }

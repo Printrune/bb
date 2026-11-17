@@ -11,7 +11,7 @@ The service was created through the Render integration using the same settings a
 ## Activate free hosting
 
 1. Connect a Render account and deploy the repository's `render.yaml` from `codex/arena-demo`. The blueprint explicitly selects the **Free** service and one concurrent two-player room.
-2. Set the service's `DEMO_PASSWORD` to the agreed arena password. Render generates `SESSION_SECRET`. Never put either value in GitHub variables, client code, invitation links, or a commit.
+2. Let Render generate `SESSION_SECRET`. No arena password is required. Never put the signing key in GitHub variables, client code, invitation links, or a commit.
 3. Keep `ALLOWED_ORIGINS=https://printrune.github.io`. It is an origin, so it must not include `/bb/`.
 4. Verify the new service's HTTPS URL with the multiplayer checks below.
 5. Set the GitHub Actions repository variable `GAME_SERVER_URL` to that HTTPS origin, without a path. Run **Publish GitHub game**. The Pages build passes it to `VITE_GAME_SERVER_URL`.
@@ -19,13 +19,13 @@ The service was created through the Render integration using the same settings a
 
 [Create the service from this repository](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2FPrintrune%2Fbb%2Ftree%2Fcodex%2Farena-demo).
 
-Render's free service sleeps after 15 idle minutes and can take about a minute to wake. The login dialog allows time for this and can be closed to play Practice. Active inbound WebSocket messages keep a match awake. Free usage limits still apply; availability and performance are not guaranteed. Use the Free tier and no paid add-ons. [Render free limits](https://render.com/docs/free).
+Render's free service sleeps after 15 idle minutes and can take about a minute to wake. The connection dialog allows time for this and can be closed to play Practice. Active inbound WebSocket messages keep a match awake. Free usage limits still apply; availability and performance are not guaranteed. Use the Free tier and no paid add-ons. [Render free limits](https://render.com/docs/free).
 
 ## Authentication and connections
 
-The server accepts only its own browser origin and exact configured origins. Its outer HTTP gate handles CORS before Colyseus matchmaking. Requests use signed bearer sessions; WebSocket upgrades validate the same session through the SDK's authentication parameter. Pages does not depend on third-party cookies, which headset and mobile browsers may block. The existing same-origin cookie login still works for a server-hosted client.
+The server accepts only its own browser origin and exact configured origins. Its outer HTTP gate handles CORS before Colyseus matchmaking. The client obtains a signed guest session automatically from `/api/session`, without a password. Requests use that bearer session; WebSocket upgrades validate it through the SDK's authentication parameter. Pages does not depend on third-party cookies, which headset and mobile browsers may block. A server-hosted client can use the same-origin session cookie.
 
-Sessions and reconnect seats are scoped to the configured server. The password is only sent to its login endpoint. Both players' damage, hazards, result, and rematch come from one authoritative Rapier simulation. A temporary dropped connection restores the seat automatically. Refreshing a Pages tab returns to the menu; rejoin using its invitation.
+Sessions and reconnect seats are scoped to the configured server. Both players' damage, hazards, result, and rematch come from one authoritative Rapier simulation. A temporary dropped connection restores the seat automatically. Refreshing a Pages tab returns to the menu; rejoin using its four-digit code or invitation.
 
 ## Verify
 

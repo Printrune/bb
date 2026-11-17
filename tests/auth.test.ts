@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  corsHeaders, issueSession, originAllowed, passwordsEqual, preflightAllowed,
+  corsHeaders, issueSession, originAllowed, preflightAllowed,
   readAuthConfig, requestToken, sessionValid,
 } from '../src/server/auth.ts';
 
-const config = { password: 'test-password', secret: 'a'.repeat(64), production: false,
+const config = { secret: 'a'.repeat(64), production: false,
   allowedOrigins: ['https://printrune.github.io'] };
 
 test('signed sessions reject tampering, expiry, and another signing key', () => {
@@ -66,9 +66,8 @@ test('preflight permits only the game HTTP methods and required request headers'
   assert.equal(preflightAllowed(undefined, undefined), false);
 });
 
-test('password comparison and production config fail closed', () => {
-  assert.equal(passwordsEqual('test-password', config.password), true);
-  assert.equal(passwordsEqual('other', config.password), false);
-  assert.throws(() => readAuthConfig({ NODE_ENV: 'production' }), /Set DEMO_PASSWORD/);
-  assert.throws(() => readAuthConfig({ NODE_ENV: 'production', DEMO_PASSWORD: 'secret', SESSION_SECRET: 'short' }));
+test('production requires a signing secret but no arena password', () => {
+  assert.throws(() => readAuthConfig({ NODE_ENV: 'production' }), /SESSION_SECRET/);
+  assert.throws(() => readAuthConfig({ NODE_ENV: 'production', SESSION_SECRET: 'short' }));
+  assert.equal(readAuthConfig({ NODE_ENV: 'production', SESSION_SECRET: config.secret }).secret, config.secret);
 });
