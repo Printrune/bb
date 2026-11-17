@@ -1,5 +1,11 @@
 # Release verification
 
+## v0.8.2 visible match codes
+
+Creating a private match now puts its case-preserving room code near the top of the lobby, with separate Copy code and Copy link buttons. The panel can scroll on short screens; practice matches omit the invitation controls.
+
+TypeScript and the Pages build pass. A local browser created a room, displayed its code immediately, and copied that exact code to the clipboard. Further browser and device checks were skipped at the user's request to publish promptly.
+
 ## v0.8.1 public multiplayer activation
 
 The Free Render service is live in Frankfurt and the GitHub Pages server URL is configured. The public cross-origin check passed separate signed sessions, private-room joining, third-seat rejection, automatic same-seat reconnect, shared combat hits/damage and forfeit.

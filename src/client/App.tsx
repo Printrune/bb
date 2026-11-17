@@ -9,6 +9,7 @@ import { createConnection } from './network';
 import type { ConnectionStatus } from './network';
 import { Icon } from './components/Icon';
 import { BotPortrait } from './components/BotPortrait';
+import { MatchInvite } from './components/MatchInvite';
 import { Joystick } from './components/Joystick';
 import { DEFEAT_REVEAL_SECONDS } from '../shared/presentation';
 import type { VRAction, VRStatus } from '../shared/vr';
@@ -122,6 +123,7 @@ export function App() {
   const [myId, setMyId] = useState<string | null>(null);
   const [inRoom, setInRoom] = useState(false);
   const [roomId, setRoomId] = useState('');
+  const [practiceMatch, setPracticeMatch] = useState(false);
   const [status, setStatus] = useState<ConnectionStatus>('idle');
   const [authentication, setAuthentication] = useState<Authentication>(MULTIPLAYER_AVAILABLE ? 'checking' : 'authenticated');
   const [authOpen, setAuthOpen] = useState(!STATIC_HOSTING || (MULTIPLAYER_AVAILABLE && Boolean(initialRoom())));
@@ -139,7 +141,6 @@ export function App() {
   const [vrReport, setVRReport] = useState<string | null>(null);
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState(initialRoom);
-  const [copied, setCopied] = useState(false);
   const [muted, setMuted] = useState(true);
   const [weaponOn, setWeaponOn] = useState(false);
   const [rematchPending, setRematchPending] = useState(false);
@@ -168,6 +169,7 @@ export function App() {
   const sawCutting = saws.some((hazard) => hazard.kind === 'killsaw' && hazard.phase === 'cutting');
   const sawUnlockIn = Math.max(0, KILLSAW_UNLOCK_SECONDS - (snapshot?.arena.elapsed ?? 0));
   const inviteUrl = roomId ? `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(roomId)}` : '';
+  const isPractice = practiceMatch || Boolean(snapshot?.players.some((player) => player.id === 'practice-bot'));
 
   const resetInput = useCallback(() => {
     keys.current.clear();
@@ -437,6 +439,7 @@ export function App() {
 
   async function createMatch(practice: boolean) {
     if (!connection.current) return;
+    setPracticeMatch(practice);
     requestedMatch.current = true;
     authRequestGeneration.current += 1;
     setPendingOnlineAction(null); setAuthOpen(false);
@@ -454,6 +457,7 @@ export function App() {
 
   async function joinMatch(event: FormEvent) {
     event.preventDefault(); if (!connection.current) return;
+    setPracticeMatch(false);
     requestedMatch.current = true;
     setBusy('Joining arena'); setError(''); acceptSnapshots.current = true;
     try {
@@ -477,13 +481,6 @@ export function App() {
     setError(''); setRematchPending(false);
     const next = new URL(window.location.href); next.searchParams.delete('room'); window.history.replaceState(null, '', next);
     renderer.current?.setPreview(botId, paint);
-  }
-
-  async function copyInvite() {
-    try {
-      await navigator.clipboard.writeText(inviteUrl); setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch { setError('Copy the invitation link shown in the lobby and send it to your opponent.'); }
   }
 
   async function copyVRReport() {
@@ -550,7 +547,13 @@ export function App() {
             {fighting && countedOutPlayer ? <div className={`countout-notice ${countedOutPlayer.id === myId ? 'countout-notice--local' : ''}`} role="status" aria-live="off"><strong>{countoutRemaining}</strong><div><span>{countedOutPlayer.id === myId ? 'MOBILITY LOST' : 'OPPONENT IMMOBILIZED'}</span><small>COUNT OUT</small></div></div> : null}
             {fighting && damageNotice ? <div className="damage-notice" role="status"><Icon name="warning" size={19} /><div><strong>{damageNotice.title}</strong><span>{damageNotice.detail}</span></div></div> : null}
             <div className="match-utility"><button className="vr-button" disabled={!immersive && !canEnterVR} aria-label={immersive ? "Exit VR" : canEnterVR ? "Enter VR" : "VR unavailable"} title={!immersive && !canEnterVR ? "VR unavailable" : undefined} onClick={() => { if (immersive) void renderer.current?.exitVR().catch(() => undefined); else if (canEnterVR) void enterVR(); }}><Icon name="vr" size={20} /><span>{immersive ? "EXIT VR" : vrStatus.kind === "entering" ? "STARTING" : "VR"}</span></button>{vrAttempted && !immersive ? <button className="icon-button" onClick={() => void copyVRReport()} aria-label="Copy VR report" title="VR report"><Icon name="copy" /></button> : null}<button className="icon-button" onClick={() => setMuted(!muted)} aria-label={muted ? 'Turn sound on' : 'Mute sound'}><Icon name={muted ? 'muted' : 'sound'} /></button><button className="icon-button" onClick={() => void leaveMatch()} aria-label="Leave match"><Icon name="exit" /></button></div>
-            {phase?.kind === 'lobby' ? <div className="match-overlay"><div className="lobby-panel"><span className="eyebrow"><span className="status-dot" /> YOUR BATTLEBOX IS READY</span><h2>{opponent ? 'Face to face.' : 'Who’s your challenger?'}</h2><p>{opponent ? 'Both drivers must be ready before the battle begins.' : 'Send your invitation to a friend. They can join from any browser.'}</p><div className="invite-box"><span>PRIVATE ROOM <strong>{roomId}</strong></span><button className="icon-button" onClick={() => void copyInvite()} aria-label="Copy invitation link"><Icon name={copied ? 'check' : 'copy'} /></button></div><input className="invite-link" value={inviteUrl} readOnly aria-label="Invitation link" onFocus={(event) => event.currentTarget.select()} /><div className="lobby-seats"><span><i className={local?.ready ? 'is-ready' : ''} />{local?.name ?? 'You'} {local?.ready ? '· READY' : ''}</span><span><i className={opponent?.ready ? 'is-ready' : ''} />{opponent?.name ?? 'Waiting for opponent'} {opponent?.ready ? '· READY' : ''}</span></div><button className="button button-primary" disabled={local?.ready || status !== 'connected'} onClick={() => connection.current?.ready()}>{local?.ready ? <><Icon name="check" /> READY TO RUMBLE</> : <>I’M READY <Icon name="arrow" /></>}</button><button className="text-button" onClick={() => void copyInvite()}>{copied ? 'INVITATION COPIED' : 'COPY INVITATION LINK'}</button></div></div> : null}
+            {(phase?.kind === 'lobby' || (!phase && roomId)) ? <div className="match-overlay match-overlay--lobby"><div className="lobby-panel">
+              <span className="eyebrow"><span className="status-dot" />{isPractice ? 'PRACTICE READY' : 'YOUR BATTLEBOX IS READY'}</span>
+              {!isPractice ? <MatchInvite key={roomId} roomId={roomId} inviteUrl={inviteUrl} /> : null}
+              <h2>{isPractice ? 'Ready to rumble?' : opponent ? 'Both bots are here.' : 'Waiting for a challenger.'}</h2>
+              <div className="lobby-seats"><span><i className={local?.ready ? 'is-ready' : ''} />{local?.name ?? 'You'} {local?.ready ? '· READY' : ''}</span><span><i className={opponent?.ready ? 'is-ready' : ''} />{opponent?.name ?? 'Waiting for opponent'} {opponent?.ready ? '· READY' : ''}</span></div>
+              <button className="button button-primary" disabled={!local || local.ready || status !== 'connected'} onClick={() => connection.current?.ready()}>{local?.ready ? <><Icon name="check" /> READY TO RUMBLE</> : <>I’M READY <Icon name="arrow" /></>}</button>
+            </div></div> : null}
             {phase?.kind === 'countdown' ? <div className="countdown-overlay"><span>IT’S ROBOT FIGHTING TIME</span><strong key={Math.ceil(phase.seconds)}>{Math.max(1, Math.ceil(phase.seconds))}</strong><span>COUNTDOWN</span></div> : null}
             {result && !resultVisible ? <div className="finish-callout" role="status">{result.reason === 'draw' ? 'DOUBLE KNOCKOUT' : result.reason === 'timeout' ? 'TIME DECISION' : 'ROBOT DESTROYED'}</div> : null}
             {result && resultVisible ? <div className="match-overlay"><div className="result-panel"><span className="eyebrow">{result.winnerId === myId ? 'THE WINNER’S CIRCLE' : result.winnerId === null ? 'DRAW' : 'EVERY GREAT BOT GETS REBUILT'}</span><h2>{resultTitle}</h2><span className="result-method">{result.reason === 'knockout' ? 'KNOCKOUT' : result.reason === 'timeout' ? 'TIME DECISION' : result.reason === 'forfeit' ? 'FORFEIT' : result.reason.toUpperCase()}</span><div className="result-stats"><div><strong>{Math.round(local?.damageDealt ?? 0)}</strong><span>DAMAGE DEALT</span></div><div><strong>{local?.hits ?? 0}</strong><span>HITS LANDED</span></div><div><strong>{Math.ceil(local?.health ?? 0)}%</strong><span>HULL REMAINING</span></div></div><button className="button button-primary" disabled={rematchPending || status !== 'connected'} onClick={() => { connection.current?.rematch(); setRematchPending(true); }}>{rematchPending ? 'WAITING FOR OPPONENT' : 'RUN IT BACK'}<Icon name="recover" /></button><button className="text-button" onClick={() => void leaveMatch()}>BACK TO THE GARAGE <Icon name="arrow" size={16} /></button></div></div> : null}
@@ -594,7 +597,7 @@ export function App() {
 
     </main>
 
-    <footer className="lobby-footer" hidden={inRoom}><span>STEEL. SPARKS. TOTAL DESTRUCTION.</span><span>BATTLEBOTS ARENA <span>V0.8.1</span></span></footer>
+    <footer className="lobby-footer" hidden={inRoom}><span>STEEL. SPARKS. TOTAL DESTRUCTION.</span><span>BATTLEBOTS ARENA <span>V0.8.2</span></span></footer>
 
     {error ? <div className="toast" role="alert"><Icon name="help" size={18} /><span>{error}</span><button className="icon-button" onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16} /></button></div> : null}
 
