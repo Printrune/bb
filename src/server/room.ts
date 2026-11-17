@@ -1,4 +1,5 @@
 import { performance } from 'node:perf_hooks';
+import { randomInt } from 'node:crypto';
 import { Room, ServerError } from '@colyseus/core';
 import type { AuthContext, Client } from '@colyseus/core';
 import {
@@ -15,6 +16,20 @@ interface RoomDependencies { auth: AuthConfig; maxRooms: number }
 export const roomMetrics = {
   activeRooms: 0, totalMatches: 0, ticks: 0, maxTickMs: 0, totalTickMs: 0,
 };
+// The current server runs one process. Reserve before awaiting simulation setup
+// so simultaneous creates cannot receive the same four-digit code.
+const activeRoomCodes = new Set<string>();
+
+function reserveRoomCode(): string {
+  const start = randomInt(10_000);
+  for (let offset = 0; offset < 10_000; offset += 1) {
+    const code = String((start + offset) % 10_000).padStart(4, '0');
+    if (activeRoomCodes.has(code)) continue;
+    activeRoomCodes.add(code);
+    return code;
+  }
+  throw new ServerError(503, 'The arena is full. Try again after a match finishes.');
+}
 
 export function createArenaRoom(dependencies: RoomDependencies) {
   return class ArenaRoom extends Room {
@@ -47,10 +62,10 @@ export function createArenaRoom(dependencies: RoomDependencies) {
       roomMetrics.activeRooms += 1;
       this.acquiredSlot = true;
       try {
+        this.roomId = reserveRoomCode();
         this.simulation = await createSimulation(this.roomId);
       } catch (error) {
-        roomMetrics.activeRooms -= 1;
-        this.acquiredSlot = false;
+        this.releaseSlot();
         throw error;
       }
       this.practice = options.data.practice;
@@ -164,8 +179,15 @@ export function createArenaRoom(dependencies: RoomDependencies) {
     }
 
     onDispose() {
-      this.simulation?.dispose();
-      if (this.acquiredSlot) roomMetrics.activeRooms -= 1;
+      try { this.simulation?.dispose(); }
+      finally { this.releaseSlot(); }
+    }
+
+    private releaseSlot() {
+      if (!this.acquiredSlot) return;
+      this.acquiredSlot = false;
+      roomMetrics.activeRooms -= 1;
+      activeRoomCodes.delete(this.roomId);
     }
 
     private publish() {

@@ -462,7 +462,7 @@ export function App() {
     setBusy('Joining arena'); setError(''); acceptSnapshots.current = true;
     try {
       const id = roomFromInput(joinCode);
-      if (!id) throw new Error('Enter an invitation link or room code.');
+      if (!/^[0-9]{4}$/.test(id)) throw new Error('Enter the four-digit room code or paste its invitation link.');
       await connection.current.join(id, selection(false));
       activeRoom.current = true; setInRoom(true); setRoomId(id); setJoinOpen(false);
     } catch (cause: unknown) {
@@ -597,7 +597,7 @@ export function App() {
 
     </main>
 
-    <footer className="lobby-footer" hidden={inRoom}><span>STEEL. SPARKS. TOTAL DESTRUCTION.</span><span>BATTLEBOTS ARENA <span>V0.8.2</span></span></footer>
+    <footer className="lobby-footer" hidden={inRoom}><span>STEEL. SPARKS. TOTAL DESTRUCTION.</span><span>BATTLEBOTS ARENA <span>V0.8.3</span></span></footer>
 
     {error ? <div className="toast" role="alert"><Icon name="help" size={18} /><span>{error}</span><button className="icon-button" onClick={() => setError('')} aria-label="Dismiss message"><Icon name="close" size={16} /></button></div> : null}
 
@@ -607,7 +607,7 @@ export function App() {
       {authentication === 'checking' ? <div className="session-loading"><span className="loader" /><p>Connecting to the arena server. The first connection can take a minute.</p></div> : authentication === 'failed' ? <><p>{authError}</p><button className="button button-primary" onClick={() => void checkSession()}>TRY AGAIN <Icon name="recover" /></button></> : <form onSubmit={(event) => void login(event)}><p>Enter the shared arena password to play with a friend.</p><label className="field-label" htmlFor="arena-password">ARENA PASSWORD</label><input id="arena-password" className="text-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" placeholder="Enter your arena password" />{authError ? <p className="form-error" role="alert">{authError}</p> : null}<button className="button button-primary" disabled={isBusy}>{isBusy ? 'UNLOCKING…' : 'UNLOCK THE ARENA'}<Icon name="arrow" /></button></form>}
     </Modal> : null}
 
-    {joinOpen && authentication === 'authenticated' ? <Modal title="Meet in the BattleBox." onClose={() => setJoinOpen(false)}><form onSubmit={(event) => void joinMatch(event)}><p>Paste your friend’s invitation link or enter their private room code. Your selected bot comes with you.</p><label className="field-label" htmlFor="room-code">INVITATION LINK OR ROOM CODE</label><input id="room-code" className="text-input" value={joinCode} onChange={(event) => setJoinCode(event.target.value)} placeholder="Paste invitation or enter code" required autoComplete="off" /><div className="join-selection"><span className="join-bot-photo"><BotPortrait botId={botId} decorative /></span><div><small>YOUR MACHINE</small><strong>{selectedBot.name}</strong><span>{driverName.trim() || 'Driver'}</span></div></div><button className="button button-primary" disabled={isBusy}>{isBusy ? 'JOINING…' : 'JOIN THE ARENA'}<Icon name="arrow" /></button></form></Modal> : null}
+    {joinOpen && authentication === 'authenticated' ? <Modal title="Meet in the BattleBox." onClose={() => setJoinOpen(false)}><form onSubmit={(event) => void joinMatch(event)}><label className="field-label" htmlFor="room-code">4-DIGIT ROOM CODE OR INVITATION LINK</label><input id="room-code" className="text-input" value={joinCode} onChange={(event) => setJoinCode(event.target.value)} placeholder="0000" inputMode="numeric" spellCheck={false} autoCapitalize="none" required autoComplete="off" /><div className="join-selection"><span className="join-bot-photo"><BotPortrait botId={botId} decorative /></span><div><small>YOUR MACHINE</small><strong>{selectedBot.name}</strong><span>{driverName.trim() || 'Driver'}</span></div></div><button className="button button-primary" disabled={isBusy}>{isBusy ? 'JOINING…' : 'JOIN THE ARENA'}<Icon name="arrow" /></button></form></Modal> : null}
 
 
   </div>;

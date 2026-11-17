@@ -106,8 +106,17 @@ test('Pages bearer authentication crosses the real HTTP and WebSocket boundaries
   client.http.authToken = token;
   const room = await client.create('arena', { name: 'Pages driver', botId: 'witchdoctor', paint: 'signature', practice: false });
   room.onMessage('snapshot', () => undefined);
-  assert.ok(room.roomId);
+  assert.match(room.roomId, /^[0-9]{4}$/);
   assert.ok(room.sessionId);
+  const guest = await client.joinById(room.roomId, { name: 'Guest driver', botId: 'tombstone', paint: 'signature', practice: false });
+  guest.onMessage('snapshot', () => undefined);
+  assert.equal(guest.roomId, room.roomId);
+  const otherRoom = await client.create('arena', { name: 'Other driver', botId: 'witchdoctor', paint: 'signature', practice: false });
+  otherRoom.onMessage('snapshot', () => undefined);
+  assert.match(otherRoom.roomId, /^[0-9]{4}$/);
+  assert.notEqual(otherRoom.roomId, room.roomId);
+  await guest.leave();
+  await otherRoom.leave();
   await room.leave();
   const health = await api('/health');
   assert.equal(health.status, 200);

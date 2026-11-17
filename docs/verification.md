@@ -1,5 +1,11 @@
 # Release verification
 
+## v0.8.3 four-digit match codes
+
+Online room IDs now contain exactly four digits, with leading zeros preserved. The single-process server reserves codes before asynchronous simulation setup and releases them on creation failure or disposal. The lobby displays the code in larger type, and Join friend accepts four-digit codes or invitation links with a numeric mobile keyboard.
+
+TypeScript passes. The existing server authentication test now also checks numeric room IDs, joining by code, and different codes for simultaneous rooms. No additional local test suite was run, following the request to publish quickly.
+
 ## v0.8.2 visible match codes
 
 Creating a private match now puts its case-preserving room code near the top of the lobby, with separate Copy code and Copy link buttons. The panel can scroll on short screens; practice matches omit the invitation controls.

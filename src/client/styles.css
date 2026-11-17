@@ -395,7 +395,7 @@ h1 span { color: var(--amber); }
 .match-overlay--lobby .lobby-panel .eyebrow { font-size: 10px; }
 .match-invite { margin-top: 16px; padding: 16px 12px 8px; background: #101511; border: 1px solid var(--amber); }
 .room-code-label { display: block; color: var(--amber); font-size: 12px; font-weight: 700; letter-spacing: 2px; }
-.room-code-value { display: block; width: 100%; min-width: 0; padding: 8px 0 14px; border: 0; background: transparent; color: #fff9e6; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: clamp(28px, 6vw, 40px); font-weight: 700; letter-spacing: .06em; text-align: center; border-radius: 0; user-select: text; -webkit-user-select: text; }
+.room-code-value { display: block; width: 100%; min-width: 0; padding: 8px 0 14px; border: 0; background: transparent; color: #fff9e6; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: clamp(44px, 9vw, 56px); font-weight: 700; letter-spacing: .12em; text-align: center; border-radius: 0; user-select: text; -webkit-user-select: text; }
 .invite-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .match-overlay--lobby .button { min-height: 44px; padding: 10px 8px; font-size: 11px; letter-spacing: .7px; }
 .invite-actions .button { gap: 6px; }
@@ -417,7 +417,7 @@ h1 span { color: var(--amber); }
   .match-overlay--lobby .lobby-panel:has(.match-invite) > .lobby-seats,
   .match-overlay--lobby .lobby-panel:has(.match-invite) > .button { grid-column: 2; }
   .match-overlay--lobby .lobby-seats { flex-direction: column; gap: 10px; }
-  .room-code-value { font-size: 30px; padding-bottom: 10px; }
+  .room-code-value { font-size: 40px; padding-bottom: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
