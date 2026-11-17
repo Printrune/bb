@@ -16,6 +16,7 @@ try { process.loadEnvFile(); } catch (error) {
 // bundled ws implementation instead; this change is isolated to this test process.
 Reflect.deleteProperty(globalThis, 'WebSocket');
 const { Client } = await import('@colyseus/sdk');
+const { leaveRoom } = await import('../src/client/leave-room');
 
 export const metricsSchema = z.object({
   activeRooms: z.number(), maxRooms: z.number(), totalMatches: z.number(),
@@ -140,9 +141,8 @@ export async function createHarness() {
       return metricsSchema.parse(await result.json());
     },
     async close() {
-      await Promise.allSettled(tracked.map(async ({ room }) => {
-        await Promise.race([room.leave(), delay(2_000)]);
-      }));
+      for (const { room } of tracked) leaveRoom(room);
+      await Promise.allSettled(tracked.map((state) => waitFor('test socket to close', () => !state.connected, 2_000)));
     },
   };
 }

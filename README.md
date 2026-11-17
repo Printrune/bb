@@ -10,7 +10,7 @@ When the `GAME_SERVER_URL` repository variable is configured, the menu offers **
 
 Play the free edition at [printrune.github.io/bb](https://printrune.github.io/bb/).
 
-Online multiplayer is now enabled at that same address. The Free Render server supports one private two-player match at a time; Practice remains available independently. The first online connection after inactivity can take about a minute while the server wakes.
+Online multiplayer is now enabled at that same address. The Free Render server allows up to ten private two-player matches at a time; Practice remains available independently. The first online connection after inactivity can take about a minute while the server wakes. See [release verification](docs/verification.md) for the measured capacity and its limits.
 
 Build the static edition with `pnpm build:pages`. The output is `dist/pages`, with assets rooted at `/bb/`. The Pages workflow publishes it over HTTPS from `codex/arena-demo`.
 
@@ -95,7 +95,7 @@ The damage network check drives into an exposed wheel through normal combat. It 
 4. Deploy the service and open its HTTPS URL.
 5. Run the verification scripts against that URL before sharing invitations.
 
-Use the free service for the first small test. It sleeps after inactivity and has compute and bandwidth limits. The blueprint starts with one concurrent two-player room. Measure it before increasing capacity; do not enable a paid tier automatically.
+The service remains on the Free plan. It sleeps after inactivity and has compute and bandwidth limits. The blueprint caps simultaneous two-player rooms at ten. This cap does not guarantee smooth performance under every combat or network condition; do not enable a paid tier automatically.
 
 The public repository exposes the source code, and anyone can create or join a match with its code. The server issues signed guest sessions automatically. Keep the signing key in hosting settings, never client code or GitHub.
 
@@ -105,7 +105,7 @@ The models reconstruct WCVII Witch Doctor and classic 2021 Tombstone from nine p
 
 Wheel traction, spinner contact volumes, recoil, coasting, gyroscopic effects, inverted driving, and motor-driven recovery run on the server. Dimensions and force coefficients are game-space approximations rather than team CAD or measured telemetry. Paint changes appearance only.
 
-Match state is temporary and resets when the server restarts. Guests can reconnect to their seat for 15 seconds after a dropped connection. Local configuration supports four rooms. The free Render blueprint starts at one room to leave CPU headroom for physics. For that deployment, set `VERIFY_LOAD_ROOMS=1` when running the load check. Benchmark the actual hosting tier before increasing capacity. A Pages tab that is refreshed must rejoin through its invitation; a brief connection drop reconnects automatically while the page stays open.
+Match state is temporary and resets when the server restarts. Guests can reconnect to their seat for 15 seconds after a dropped connection. Local configuration defaults to four rooms. The free Render deployment allows ten rooms. For that deployment, set `VERIFY_LOAD_ROOMS=10` and `VERIFY_LOAD_COMBAT=1` when running the load check. A Pages tab that is refreshed must rejoin through its invitation; a brief connection drop reconnects automatically while the page stays open.
 
 The game has no age gate or date-of-birth collection. Accounts, payments, public matchmaking, spectators, team battles, and real-show activities are future work.
 

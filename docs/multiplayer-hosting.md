@@ -4,13 +4,15 @@ The website remains https://printrune.github.io/bb/ and the code remains in Prin
 
 ## Current deployment
 
-Online multiplayer is enabled. The GitHub `GAME_SERVER_URL` variable points to `https://battlebots-arena-xcd8.onrender.com`. The Render service is `srv-dbt6fps9v7es73cbduk0`, in the confirmed dev's workspace, using the Free plan in Frankfurt. It allows one private two-player match at a time. Automatic server deployment is off; GitHub Pages publishes on pushes to `codex/arena-demo`.
+Online multiplayer is enabled. The GitHub `GAME_SERVER_URL` variable points to `https://battlebots-arena-xcd8.onrender.com`. The Render service is `srv-dbt6fps9v7es73cbduk0`, in the confirmed dev's workspace, using the Free plan in Frankfurt. Its configured limit is ten private two-player matches at a time. This is a room limit, not a guaranteed performance rating. Automatic server deployment is off; GitHub Pages publishes on pushes to `codex/arena-demo`.
 
 The service was created through the Render integration using the same settings as the blueprint. Its signing secret was generated securely and stored only in Render. The following activation steps describe how to recreate the setup; use the existing service for routine updates.
 
+The ten-room combat capacity check did not meet the target update rate: it averaged 14.38 updates per second per room against 30. The ten-room limit remains enabled as requested, but simultaneous heavy use can lag. See [release verification](verification.md) for the sample and its limits.
+
 ## Activate free hosting
 
-1. Connect a Render account and deploy the repository's `render.yaml` from `codex/arena-demo`. The blueprint explicitly selects the **Free** service and one concurrent two-player room.
+1. Connect a Render account and deploy the repository's `render.yaml` from `codex/arena-demo`. The blueprint explicitly selects the **Free** service and a limit of ten concurrent two-player rooms.
 2. Let Render generate `SESSION_SECRET`. No arena password is required. Never put the signing key in GitHub variables, client code, invitation links, or a commit.
 3. Keep `ALLOWED_ORIGINS=https://printrune.github.io`. It is an origin, so it must not include `/bb/`.
 4. Verify the new service's HTTPS URL with the multiplayer checks below.
@@ -31,6 +33,6 @@ Sessions and reconnect seats are scoped to the configured server. Both players' 
 
 For local checks, start the server on port 3002 with `ALLOWED_ORIGINS=http://127.0.0.1:3000`. Build Pages with `VITE_GAME_SERVER_URL=http://127.0.0.1:3002`, then preview `dist/pages` at port 3000 with base `/bb/`.
 
-Run `pnpm verify:pages-multiplayer` with `VERIFY_BASE_URL` and `VERIFY_PAGES_ORIGIN` set to the server and website origins. It verifies real clients with separate signed sessions and no cookies. Run the existing `pnpm verify:multiplayer` for the full same-origin fight, rematch, and reconnect check. Run `pnpm verify:load` with `VERIFY_LOAD_ROOMS=1` against the free service before sharing it.
+Run `pnpm verify:pages-multiplayer` with `VERIFY_BASE_URL` and `VERIFY_PAGES_ORIGIN` set to the server and website origins. It verifies real clients with separate signed sessions and no cookies. Run the existing `pnpm verify:multiplayer` for the full same-origin fight, rematch, and reconnect check. Run `pnpm verify:load` with `VERIFY_LOAD_ROOMS=10` and `VERIFY_LOAD_COMBAT=1` against the free service. The combat check reports damage, hits, and final match phases so a sample that includes finished fights is not mistaken for sustained full combat.
 
 Do not claim public multiplayer is active until the service is deployed, the GitHub variable is set, and the published Pages client has joined a shared fight successfully.

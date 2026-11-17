@@ -15,7 +15,7 @@ services:
       - key: NODE_VERSION
         value: 24
       - key: MAX_ROOMS
-        value: 1
+        value: 10
       - key: ALLOWED_ORIGINS
         value: https://printrune.github.io
       - key: SESSION_SECRET

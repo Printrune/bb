@@ -1,5 +1,15 @@
 # Release verification
 
+## Ten-room capacity check, 17 November 2026
+
+The existing Free Render service now has `MAX_ROOMS=10`, matching the checked-in blueprint. This is the requested room limit, not a claim that the free instance can run ten fights smoothly.
+
+A public 45.99-second combat sample connected 20 clients across ten rooms. Every room recorded weapon hits and damage, and an eleventh room was rejected. The server averaged 14.38 simulation updates per second per room against a 30 Hz target, or 47.9% of target throughput. Mean simulation work was 5.63 ms per tick, maximum observed snapshot gap was 914 ms, and process memory was 258.39 MiB. The capacity check failed its throughput requirement.
+
+Eight fights had finished by the end and two were still fighting. The sample therefore includes time after some knockouts and is not a sustained maximum-combat benchmark. Ten simultaneous fights are not verified as smooth on this free instance. The requested limit remains ten; no paid plan or extra server was provisioned.
+
+The load check now has an optional `VERIFY_LOAD_COMBAT=1` mode using the existing autopilot, reports room outcomes, and requires actual hits and damage. Its cleanup uses the same immediate socket-close helper as the game.
+
 ## v0.8.4 password-free multiplayer
 
 Create match and Join friend now obtain a guest session automatically. The password form, password validation, and password configuration are removed. Signed transport sessions, origin checks, room limits, and four-digit invitation codes remain in use. The older login endpoint accepts a guest connection without a password during the client rollout.
